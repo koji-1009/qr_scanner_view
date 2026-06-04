@@ -24,7 +24,7 @@ enum BarcodeFormat {
 }
 
 /// All recognizable formats except [BarcodeFormat.unknown]; the default for
-/// [DetectionOptions.formats].
+/// `DetectionOptions.formats`.
 const Set<BarcodeFormat> kAllFormats = <BarcodeFormat>{
   .qr,
   .aztec,
@@ -60,8 +60,8 @@ class Barcode {
 
   /// Detected corner points, normalized to 0.0..1.0 with origin top-left in
   /// the displayed preview's coordinate space, consistently on both platforms
-  /// (for [QrScanner.analyzeImage], in the EXIF-upright image's space).
-  /// Multiply by the rendered size of the [QrScannerView] to overlay the
+  /// (for `QrScanner.analyzeImage`, in the EXIF-upright image's space).
+  /// Multiply by the rendered size of the `QrScannerView` to overlay the
   /// preview. May be empty when the platform reports no corners.
   final List<Offset> corners;
 

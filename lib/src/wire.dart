@@ -53,5 +53,8 @@ Barcode barcodeFromWire(Map<dynamic, dynamic> map) {
 
 List<Barcode> barcodesFromWire(Object? raw) {
   if (raw is! List) return const [];
-  return raw.whereType<Map>().map(barcodeFromWire).toList(growable: false);
+  return raw
+      .whereType<Map<dynamic, dynamic>>()
+      .map(barcodeFromWire)
+      .toList(growable: false);
 }

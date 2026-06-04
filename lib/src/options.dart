@@ -35,7 +35,7 @@ enum DetectionMode {
   /// [DetectionOptions.timeout] (or about a second when no timeout is set) is
   /// reported as new again. With a [DetectionOptions.timeout] a continuously
   /// visible code is also re-emitted after the timeout elapses. Suppression
-  /// state survives [stop]/[start] so resuming does not re-count a code still
+  /// state survives `stop`/`start` so resuming does not re-count a code still
   /// in view.
   noDuplicates,
 

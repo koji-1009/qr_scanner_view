@@ -72,7 +72,7 @@ class QrScannerView extends StatefulWidget {
   final Widget Function(BuildContext context)? placeholderBuilder;
 
   /// Shown over the view in [ScannerState.error] and the permission-denied
-  /// states. [error] carries the [ScannerError] for [ScannerState.error] and
+  /// states. `error` carries the [ScannerError] for [ScannerState.error] and
   /// is null for the permission states.
   final Widget Function(
     BuildContext context,

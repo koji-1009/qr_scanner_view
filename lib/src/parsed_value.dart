@@ -23,6 +23,7 @@ import 'models.dart';
 ///
 /// A payload that announces a type but fails to parse (e.g. `WIFI:` without
 /// an SSID) falls back to [TextValue].
+@immutable
 sealed class ParsedValue {
   const ParsedValue();
 

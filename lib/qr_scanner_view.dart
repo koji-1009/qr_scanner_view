@@ -1,7 +1,7 @@
 /// Live camera QR / barcode scanner plugin for iOS and Android.
 ///
 /// Public API barrel. Import this single file to use the plugin.
-library qr_scanner_view;
+library;
 
 export 'src/models.dart';
 export 'src/options.dart';

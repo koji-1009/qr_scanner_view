@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart' show immutable;
 import 'package:flutter/services.dart';
 
 import 'models.dart';
@@ -33,6 +34,7 @@ enum ScannerErrorCode {
 }
 
 /// An error surfaced by the native scanner.
+@immutable
 class ScannerError {
   const ScannerError(this.code, [this.message]);
 
@@ -66,8 +68,9 @@ class ScannerCapabilities {
   /// Lenses that can be selected on this device.
   final Set<CameraLens> availableLenses;
 
-  /// The camera's maximum zoom ratio (informational; [setZoom] stays linear
-  /// 0.0..1.0 across the supported range).
+  /// The camera's maximum zoom ratio (informational;
+  /// [QrScannerController.setZoom] stays linear 0.0..1.0 across the supported
+  /// range).
   final double maxZoomRatio;
 }
 
@@ -77,10 +80,10 @@ final Map<String, ScannerErrorCode> _errorCodeByName = ScannerErrorCode.values
     .asNameMap();
 final Map<String, CameraLens> _lensByName = CameraLens.values.asNameMap();
 
-/// Controls a single [QrScannerView], identified by its platform view id.
+/// Controls a single `QrScannerView`, identified by its platform view id.
 ///
-/// Created and disposed by [QrScannerView]; access it through
-/// [QrScannerView.onCreated] for torch, zoom and camera control. Setters
+/// Created and disposed by `QrScannerView`; access it through
+/// `QrScannerView.onCreated` for torch, zoom and camera control. Setters
 /// issued before scanning starts are buffered natively and applied when the
 /// camera comes up.
 class QrScannerController {
@@ -88,12 +91,11 @@ class QrScannerController {
     this.viewId, {
     this.detection = const DetectionOptions(),
     CameraOptions camera = const CameraOptions(),
-    PreviewFit fit = .cover,
+    this._fit = .cover,
   }) : _torchEnabled = camera.torch,
        _zoom = camera.zoom,
        _lens = camera.lens,
        _scanWindow = detection.scanWindow,
-       _fit = fit,
        _methodChannel = MethodChannel(methodChannelName(viewId)),
        _eventChannel = EventChannel(eventChannelName(viewId)) {
     validateScanWindow(detection.scanWindow);
@@ -437,7 +439,7 @@ class QrScannerController {
     return _methodChannel.invokeMethod<void>(method, arguments);
   }
 
-  /// Releases this controller. Called by [QrScannerView]; idempotent.
+  /// Releases this controller. Called by `QrScannerView`; idempotent.
   Future<void> dispose() async {
     if (_disposed) return;
     _disposed = true;
