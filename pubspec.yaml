@@ -2,7 +2,7 @@ name: qr_scanner_view
 description: >-
   Live camera QR / barcode scanner Flutter plugin for iOS and Android. Native
   owns camera, preview and detector via a PlatformView; only decoded strings
-  cross to Dart. iOS uses AVFoundation, Android uses CameraX + unbundled ML Kit.
+  cross to Dart. iOS uses AVFoundation, Android uses CameraX + ML Kit.
 version: 0.1.0
 repository: https://github.com/koji-1009/qr_scanner_view
 issue_tracker: https://github.com/koji-1009/qr_scanner_view/issues

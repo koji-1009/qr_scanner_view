@@ -137,11 +137,21 @@ See `example/` for both rules applied.
 
 | | iOS | Android |
 |---|---|---|
-| Detection engine | AVFoundation metadata output (system) | ML Kit (unbundled, needs Google Play services) |
+| Detection engine | AVFoundation metadata output (system) | ML Kit (unbundled by default, bundled opt-in below) |
 | `analyzeImage` | Apple Vision (system) | ML Kit |
 | `setZoom(0.0)` (widest) | the selected lens's widest | the device's widest — may engage the ultra-wide on logical multi-cameras |
 | UPC-A | normalized from EAN-13 (leading 0) | native |
 | codabar | live scan iOS 15.4+; `analyzeImage` iOS 15.0+ | supported |
+
+By default Android resolves barcodes through Google Play services (unbundled
+ML Kit): nothing is added to your APK, but devices without Play services
+cannot scan and the first scan on a device may wait for the model download.
+To bundle the model into the app instead, add to your app's
+`android/gradle.properties`:
+
+```properties
+com.koji_1009.app.qr_scanner_view.useBundled=true
+```
 
 `ScannerErrorCode`: `lensNotFound`, `configurationFailed`,
 `unsupportedFormats`, `activityUnavailable`, `unknown`.

@@ -61,7 +61,20 @@ dependencies {
     implementation("androidx.camera:camera-mlkit-vision:$cameraxVersion")
     implementation("androidx.lifecycle:lifecycle-runtime:2.10.0")
     implementation("androidx.lifecycle:lifecycle-process:2.10.0")
-    implementation("com.google.android.gms:play-services-mlkit-barcode-scanning:18.3.1")
+
+    // Both artifacts expose the same com.google.mlkit.vision.barcode API; only
+    // where the model lives differs. Unbundled (default) resolves it through
+    // Google Play services; bundled ships it inside the app, so devices
+    // without Play services can scan and the first scan never waits for a
+    // model download, at the cost of APK size.
+    val useBundled = (project.findProperty("com.koji_1009.app.qr_scanner_view.useBundled") ?: "false")
+        .toString()
+        .toBoolean()
+    if (useBundled) {
+        implementation("com.google.mlkit:barcode-scanning:17.3.0")
+    } else {
+        implementation("com.google.android.gms:play-services-mlkit-barcode-scanning:18.3.1")
+    }
 
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.mockito:mockito-core:5.14.2")
