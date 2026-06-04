@@ -1,0 +1,15 @@
+# Development-only files; not needed by package consumers.
+AGENTS.md
+test/
+android/src/test/
+
+# A .pubignore replaces the .gitignore of its directory for publishing, so
+# the generated/dev entries that matter at publish time are repeated here
+# (hidden files are excluded by pub itself).
+build/
+coverage/
+pubspec.lock
+doc/api/
+*.iml
+*.log
+local.properties
