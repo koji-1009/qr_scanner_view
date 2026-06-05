@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.2.0
+
+- `analyzeImage` now reports `unsupportedFormats` when none of the requested formats is available on the device, instead of detecting every symbology.
+- Requesting only `ean13` now yields UPC-A symbols as zero-prefixed ean13 results on Android too, matching iOS.
+- `scanOnce` settles on the code nearest the scan-window / preview center, matching `DetectionMode.once`.
+- `requestPermission` always resolves to a status on Android: no foreground Activity returns `notDetermined`, concurrent calls share one request, and a request survives Activity recreation.
+- The Android camera no longer binds while the app is backgrounded when start resolves mid-initialization; scan-window frames wait for the first layout.
+- iOS re-resolves the scanning / `unsupportedFormats` state after a lens switch and holds the metadata delegate weakly.
+- Fixed vCard parsing dropping the property after a malformed quoted-printable trailing `=`.
+- Non-positive `DetectionOptions.timeout` is treated as null; the widget ignores non-finite zoom in release builds.
+- Documented codabar's iOS floors and the UPC-A / EAN-13 contract.
+
 ## 0.1.1
 
 - Lowered the iOS minimum to 13.0 and raised the Android minimum SDK to 24, matching Flutter 3.44's supported platforms.
