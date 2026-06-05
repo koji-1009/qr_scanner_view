@@ -150,7 +150,7 @@ public class QrScannerViewPlugin: NSObject, FlutterPlugin {
     ]
   }
 
-  /// codabar is iOS 15.4+, matching the live path's typeMap.
+  /// codabar is iOS 15.0+ in Vision (the live path's AVFoundation type is 15.4+).
   private static let symbologyMap: [String: [VNBarcodeSymbology]] = {
     var map: [String: [VNBarcodeSymbology]] = [
       "qr": [.qr],
@@ -165,7 +165,7 @@ public class QrScannerViewPlugin: NSObject, FlutterPlugin {
       "code128": [.code128],
       "itf": [.itf14, .i2of5],
     ]
-    if #available(iOS 15.4, *) {
+    if #available(iOS 15.0, *) {
       map["codabar"] = [.codabar]
     }
     return map

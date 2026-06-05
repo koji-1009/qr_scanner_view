@@ -1,6 +1,6 @@
 # qr_scanner_view
 
-Live camera QR / barcode scanner for Flutter (iOS 15+ / Android 5.0+).
+Live camera QR / barcode scanner for Flutter (iOS 13+ / Android 7.0+).
 
 The native side owns the camera, preview and detector (AVFoundation on iOS, CameraX + ML Kit on Android); only decoded values cross to Dart. The widget owns its controller, requests permission, starts the camera, pauses while the app is in the background and cleans everything up on removal.
 
@@ -14,8 +14,8 @@ QrScannerView(onDetect: (barcode) => print(barcode.value))
 
 ### Setup
 
-- **iOS**: add `NSCameraUsageDescription` to your app's `Info.plist` (the app crashes without it). Minimum iOS 15.0.
-- **Android**: nothing — the camera permission is declared and requested by the plugin. Minimum SDK 21.
+- **iOS**: add `NSCameraUsageDescription` to your app's `Info.plist` (the app crashes without it). Minimum iOS 13.0.
+- **Android**: nothing — the camera permission is declared and requested by the plugin. Minimum SDK 24.
 
 ## Configuration
 

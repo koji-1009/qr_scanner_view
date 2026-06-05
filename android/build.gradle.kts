@@ -1,5 +1,5 @@
 group = "com.koji_1009.app.qr_scanner_view"
-version = "0.1.0"
+version = "0.1.1"
 
 buildscript {
     val kotlinVersion = "2.3.20"
@@ -42,7 +42,7 @@ android {
     }
 
     defaultConfig {
-        minSdk = 21
+        minSdk = 24
     }
 }
 
