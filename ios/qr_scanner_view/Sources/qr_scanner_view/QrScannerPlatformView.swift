@@ -54,6 +54,21 @@ final class WeakStreamHandler: NSObject, FlutterStreamHandler {
   }
 }
 
+/// AVCaptureMetadataOutput's delegate retention is undocumented; this weak
+/// hop keeps the platform view deallocatable when 'dispose' never arrives,
+/// so deinit-driven teardown can still stop the session.
+final class WeakMetadataDelegate: NSObject, AVCaptureMetadataOutputObjectsDelegate {
+  weak var delegate: QrScannerPlatformView?
+
+  func metadataOutput(
+    _ output: AVCaptureMetadataOutput,
+    didOutput metadataObjects: [AVMetadataObject],
+    from connection: AVCaptureConnection
+  ) {
+    delegate?.metadataOutput(output, didOutput: metadataObjects, from: connection)
+  }
+}
+
 /// Scanner platform view backed by AVFoundation. Session work runs on a
 /// dedicated serial queue; detection, state events and the event sink stay on
 /// the main thread. The session pauses automatically while the app is in the
@@ -72,6 +87,7 @@ final class QrScannerPlatformView: NSObject,
   private let methodChannel: FlutterMethodChannel
   private let eventChannel: FlutterEventChannel
   private let streamProxy = WeakStreamHandler()
+  private let metadataProxy = WeakMetadataDelegate()
   private var eventSink: FlutterEventSink?
   private var lastState: String?
   private var lastErrorEvent: [String: Any]?
@@ -123,11 +139,11 @@ final class QrScannerPlatformView: NSObject,
     messenger: FlutterBinaryMessenger
   ) {
     methodChannel = FlutterMethodChannel(
-      name: "qr_scanner_view/scanner_\(viewId)",
+      name: "\(QrScannerViewPlugin.viewType)/scanner_\(viewId)",
       binaryMessenger: messenger
     )
     eventChannel = FlutterEventChannel(
-      name: "qr_scanner_view/scanner_\(viewId)/events",
+      name: "\(QrScannerViewPlugin.viewType)/scanner_\(viewId)/events",
       binaryMessenger: messenger
     )
     let params = args as? [String: Any] ?? [:]
@@ -152,6 +168,7 @@ final class QrScannerPlatformView: NSObject,
     }
     streamProxy.delegate = self
     eventChannel.setStreamHandler(streamProxy)
+    metadataProxy.delegate = self
 
     let center = NotificationCenter.default
     center.addObserver(
@@ -387,7 +404,7 @@ final class QrScannerPlatformView: NSObject,
       return false
     }
     session.addOutput(metadataOutput)
-    metadataOutput.setMetadataObjectsDelegate(self, queue: .main)
+    metadataOutput.setMetadataObjectsDelegate(metadataProxy, queue: .main)
 
     session.commitConfiguration()
     return true
@@ -598,6 +615,9 @@ final class QrScannerPlatformView: NSObject,
       if !self.isPaused {
         self.applyMetadataTypes()
         self.applyScanWindow()
+        // Re-resolve the published state against the new input, as
+        // runSession/resume do; applyState dedups the unchanged case.
+        self.emitScanningOrUnsupported()
       }
       self.applyTorch()
       self.applyZoom(self.requestedZoom)

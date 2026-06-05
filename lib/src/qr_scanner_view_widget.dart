@@ -176,7 +176,9 @@ class _QrScannerViewState extends State<QrScannerView> {
     if (camera.lens != oldCamera.lens) {
       controller.setCamera(camera.lens).ignore();
     }
-    if (camera.zoom != oldCamera.zoom) {
+    // In release builds CameraOptions' assert is stripped, so a non-finite
+    // zoom can reach here; setZoom would throw synchronously past .ignore().
+    if (camera.zoom != oldCamera.zoom && camera.zoom.isFinite) {
       controller.setZoom(camera.zoom).ignore();
     }
     if (widget.detection.scanWindow != oldScanWindow) {

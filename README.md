@@ -111,8 +111,10 @@ See `example/` for both rules applied.
 | Detection engine | AVFoundation metadata output (system) | ML Kit (unbundled by default, bundled opt-in below) |
 | `analyzeImage` | Apple Vision (system) | ML Kit |
 | `setZoom(0.0)` (widest) | the selected lens's widest | the device's widest — may engage the ultra-wide on logical multi-cameras |
-| UPC-A | normalized from EAN-13 (leading 0) | native |
+| UPC-A | normalized from EAN-13 (leading 0) | native (ML Kit `UPC_A`) |
 | codabar | live scan iOS 15.4+; `analyzeImage` iOS 15.0+ | supported |
+
+A UPC-A symbol is a zero-prefixed EAN-13 (the bars are identical): requesting `upcA` yields 12-digit `upcA` results, while requesting only `ean13` yields the same symbols as 13-digit zero-prefixed `ean13` results — identically on both platforms.
 
 By default Android resolves barcodes through Google Play services (unbundled ML Kit): nothing is added to your APK, but devices without Play services cannot scan and the first scan on a device may wait for the model download. To bundle the model into the app instead, add to your app's `android/gradle.properties`:
 

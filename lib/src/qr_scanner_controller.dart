@@ -228,16 +228,18 @@ class QrScannerController {
   /// is open.
   void _emitNoDuplicates(List<Barcode> visible) {
     final now = _clock.elapsed;
-    final reappear = detection.timeout ?? _reappearFallback;
+    // A non-positive timeout cannot suppress anything (DetectionMode.all is
+    // the emit-every-frame mode), so treat it as null.
+    final raw = detection.timeout;
+    final timeout = raw != null && raw > Duration.zero ? raw : null;
+    final reappear = timeout ?? _reappearFallback;
     for (final barcode in visible) {
       final key = (barcode.format, barcode.value);
       final lastSeen = _lastSeenAt[key];
       final lastEmit = _lastEmitAt[key];
       final wasAway = lastSeen == null || now - lastSeen >= reappear;
       final timedOut =
-          detection.timeout != null &&
-          lastEmit != null &&
-          now - lastEmit >= detection.timeout!;
+          timeout != null && lastEmit != null && now - lastEmit >= timeout;
       if (lastEmit == null || wasAway || timedOut) {
         _lastEmitAt[key] = now;
         _barcodes.add(barcode);
@@ -339,15 +341,18 @@ class QrScannerController {
 
   /// Starts (if needed) and completes with the next detection, then stops.
   ///
+  /// When several codes are visible in the first frame, settles on the one
+  /// nearest the scan-window (or preview) center, like [DetectionMode.once].
   /// Returns null when [timeout] elapses or the controller is disposed first.
   Future<Barcode?> scanOnce({Duration? timeout}) async {
     // Subscribe before starting so a detection arriving while start() is in
     // flight is not lost; ignore() silences the abandoned future on timeout.
-    final first = barcodes.first;
+    final first = frames.first;
     first.ignore();
     try {
       await start();
-      return await (timeout == null ? first : first.timeout(timeout));
+      final frame = await (timeout == null ? first : first.timeout(timeout));
+      return _selectOnceTarget(frame);
     } on TimeoutException {
       return null;
     } on StateError {

@@ -504,7 +504,9 @@ List<String> _joinQpSoftBreaks(List<String> lines) {
   for (var i = 0; i < lines.length; i++) {
     var line = lines[i];
     if (_isQuotedPrintableProperty(line)) {
-      while (line.endsWith('=') && i + 1 < lines.length) {
+      while (line.endsWith('=') &&
+          i + 1 < lines.length &&
+          !_qpPropertyBoundary.hasMatch(lines[i + 1])) {
         line = line.substring(0, line.length - 1) + lines[++i];
       }
     }
@@ -512,6 +514,11 @@ List<String> _joinQpSoftBreaks(List<String> lines) {
   }
   return joined;
 }
+
+/// Property names are conventionally uppercase; requiring that keeps a QP
+/// continuation starting with prose like `tel:` joinable, while a malformed
+/// trailing '=' cannot swallow a following real property.
+final RegExp _qpPropertyBoundary = RegExp(r'^[A-Z][A-Z0-9-]*[;:]');
 
 bool _isQuotedPrintableProperty(String line) {
   final colon = line.indexOf(':');
