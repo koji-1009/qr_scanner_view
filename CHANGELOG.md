@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.1
+
+- Lowered the iOS minimum to 13.0 and raised the Android minimum SDK to 24, matching Flutter 3.44's supported platforms.
+- `analyzeImage` now detects codabar from iOS 15.0 (previously gated at 15.4).
+- Shortened the pubspec description so pub.dev displays it fully.
+
 ## 0.1.0
 
 Initial release.
