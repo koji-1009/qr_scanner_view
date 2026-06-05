@@ -8,7 +8,8 @@ enum CameraPermissionStatus {
   granted,
 
   /// Not asked yet. On Android this is also returned when a permanent denial
-  /// cannot be distinguished before a request.
+  /// cannot be distinguished before a request, or when no foreground Activity
+  /// is available to prompt from.
   notDetermined,
 
   /// Denied, but the OS may prompt again.
@@ -58,10 +59,11 @@ abstract final class QrScanner {
   /// Prompts for camera permission when the OS still allows prompting, and
   /// returns the resulting status.
   ///
-  /// On Android this throws a [PlatformException] when no foreground Activity
-  /// is available or the Activity is detached mid-request (code
-  /// `activityUnavailable`), or when another request is already in progress
-  /// (code `requestInProgress`); iOS always returns a status.
+  /// Always resolves to a status on both platforms: on Android, when no
+  /// foreground Activity is available to prompt from this returns
+  /// [CameraPermissionStatus.notDetermined], concurrent calls share the
+  /// in-flight request's outcome, and a request survives an Activity
+  /// recreation (e.g. rotation).
   static Future<CameraPermissionStatus> requestPermission() async {
     final status = await _channel.invokeMethod<String>('requestPermission');
     return _permissionStatusByName[status] ?? .denied;

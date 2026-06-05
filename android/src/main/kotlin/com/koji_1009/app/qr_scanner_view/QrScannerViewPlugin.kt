@@ -32,7 +32,7 @@ class QrScannerViewPlugin :
     private var channel: MethodChannel? = null
     private var applicationContext: Context? = null
     private var activityBinding: ActivityPluginBinding? = null
-    private var pendingPermissionResult: MethodChannel.Result? = null
+    private val pendingPermissionResults = mutableListOf<MethodChannel.Result>()
 
     override fun onAttachedToEngine(binding: FlutterPlugin.FlutterPluginBinding) {
         applicationContext = binding.applicationContext
@@ -93,14 +93,14 @@ class QrScannerViewPlugin :
         val binding = activityBinding
         val activity = binding?.activity
         if (binding == null || activity == null) {
-            result.error("activityUnavailable", "No foreground Activity is available.", null)
+            // No Activity to prompt from; the OS state is still undetermined.
+            // A status keeps the contract aligned with iOS (never errors).
+            result.success("notDetermined")
             return
         }
-        if (pendingPermissionResult != null) {
-            result.error("requestInProgress", "A permission request is already in progress.", null)
-            return
-        }
-        pendingPermissionResult = result
+        // Concurrent calls share the on-screen request's outcome.
+        pendingPermissionResults.add(result)
+        if (pendingPermissionResults.size > 1) return
         binding.addRequestPermissionsResultListener(this)
         ActivityCompat.requestPermissions(
             activity,
@@ -115,8 +115,7 @@ class QrScannerViewPlugin :
         grantResults: IntArray,
     ): Boolean {
         if (requestCode != PLUGIN_PERMISSION_REQUEST_CODE) return false
-        val result = pendingPermissionResult ?: return true
-        pendingPermissionResult = null
+        if (pendingPermissionResults.isEmpty()) return true
         activityBinding?.removeRequestPermissionsResultListener(this)
         val granted = grantResults.isNotEmpty() &&
                 grantResults[0] == PackageManager.PERMISSION_GRANTED
@@ -127,7 +126,9 @@ class QrScannerViewPlugin :
 
             else -> "denied"
         }
-        result.success(status)
+        val pending = pendingPermissionResults.toList()
+        pendingPermissionResults.clear()
+        pending.forEach { it.success(status) }
         return true
     }
 
@@ -195,22 +196,26 @@ class QrScannerViewPlugin :
             }
     }
 
-    /** A detach during a pending request would otherwise hang the Dart future
-     * and wedge every later request behind the in-progress guard. */
-    private fun failPendingPermission() {
-        val pending = pendingPermissionResult ?: return
-        pendingPermissionResult = null
+    /** A final detach during a pending request would otherwise hang the Dart
+     * futures; the OS state is still undetermined, so answer with that
+     * status. Config changes instead migrate the listener in
+     * [updateActivityBinding]. */
+    private fun settlePendingPermission() {
+        if (pendingPermissionResults.isEmpty()) return
         activityBinding?.removeRequestPermissionsResultListener(this)
-        pending.error(
-            "activityUnavailable",
-            "The Activity was detached during the permission request.",
-            null,
-        )
+        val pending = pendingPermissionResults.toList()
+        pendingPermissionResults.clear()
+        pending.forEach { it.success("notDetermined") }
     }
 
     private fun updateActivityBinding(binding: ActivityPluginBinding?) {
         activityBinding = binding
         factory?.onActivityBindingChanged(binding)
+        // A request surviving a config change keeps listening on the new
+        // binding; the recreated Activity re-delivers the result.
+        if (binding != null && pendingPermissionResults.isNotEmpty()) {
+            binding.addRequestPermissionsResultListener(this)
+        }
     }
 
     override fun onAttachedToActivity(binding: ActivityPluginBinding) {
@@ -222,12 +227,11 @@ class QrScannerViewPlugin :
     }
 
     override fun onDetachedFromActivityForConfigChanges() {
-        failPendingPermission()
         updateActivityBinding(null)
     }
 
     override fun onDetachedFromActivity() {
-        failPendingPermission()
+        settlePendingPermission()
         updateActivityBinding(null)
     }
 
