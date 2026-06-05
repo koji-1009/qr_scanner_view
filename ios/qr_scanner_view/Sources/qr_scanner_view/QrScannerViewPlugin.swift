@@ -6,12 +6,17 @@ import Vision
 /// Registers the platform view factory and the plugin-level channel used for
 /// still-image analysis and camera permission.
 public class QrScannerViewPlugin: NSObject, FlutterPlugin {
+  /// Plugin namespace: the registered view type, the plugin-level channel
+  /// name and the per-view channel prefix. Must match `kViewType` (wire.dart)
+  /// and `VIEW_TYPE` (Kotlin).
+  static let viewType = "qr_scanner_view"
+
   public static func register(with registrar: FlutterPluginRegistrar) {
     let factory = QrScannerViewFactory(messenger: registrar.messenger())
-    registrar.register(factory, withId: "qr_scanner_view")
+    registrar.register(factory, withId: viewType)
 
     let channel = FlutterMethodChannel(
-      name: "qr_scanner_view",
+      name: viewType,
       binaryMessenger: registrar.messenger()
     )
     registrar.addMethodCallDelegate(QrScannerViewPlugin(), channel: channel)
@@ -88,11 +93,22 @@ public class QrScannerViewPlugin: NSObject, FlutterPlugin {
   ) {
     DispatchQueue.global(qos: .userInitiated).async {
       let url = URL(fileURLWithPath: path)
-      let request = VNDetectBarcodesRequest()
       let symbologies = Self.symbologies(for: formats)
-      if !symbologies.isEmpty {
-        request.symbologies = symbologies
+      // Requested formats that resolve to nothing must error like the live
+      // path, not fall back to Vision's detect-everything default.
+      if symbologies.isEmpty, !formats.isEmpty {
+        DispatchQueue.main.async {
+          result(
+            FlutterError(
+              code: "unsupportedFormats",
+              message: "None of the requested formats are supported on this device.",
+              details: nil
+            ))
+        }
+        return
       }
+      let request = VNDetectBarcodesRequest()
+      request.symbologies = symbologies
 
       let handler = VNImageRequestHandler(url: url, options: [:])
       do {
@@ -150,6 +166,7 @@ public class QrScannerViewPlugin: NSObject, FlutterPlugin {
     ]
   }
 
+  /// Wire code to Vision symbologies; the reverse map is derived from this.
   /// codabar is iOS 15.0+ in Vision (the live path's AVFoundation type is 15.4+).
   private static let symbologyMap: [String: [VNBarcodeSymbology]] = {
     var map: [String: [VNBarcodeSymbology]] = [
@@ -171,16 +188,21 @@ public class QrScannerViewPlugin: NSObject, FlutterPlugin {
     return map
   }()
 
+  private static let codeMap: [VNBarcodeSymbology: String] = {
+    var inverse: [VNBarcodeSymbology: String] = [:]
+    for (code, symbologies) in symbologyMap {
+      for symbology in symbologies { inverse[symbology] = code }
+    }
+    return inverse
+  }()
+
   private static func symbologies(for formats: [String]) -> [VNBarcodeSymbology] {
     let codes = BarcodeWire.requestedCodes(formats, allCodes: Array(symbologyMap.keys))
     return codes.flatMap { symbologyMap[$0] ?? [] }
   }
 
   private static func code(for symbology: VNBarcodeSymbology) -> String {
-    for (code, symbologies) in symbologyMap where symbologies.contains(symbology) {
-      return code
-    }
-    return "unknown"
+    return codeMap[symbology] ?? "unknown"
   }
 }
 

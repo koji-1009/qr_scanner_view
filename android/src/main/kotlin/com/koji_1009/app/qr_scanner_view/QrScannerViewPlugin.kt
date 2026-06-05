@@ -156,6 +156,16 @@ class QrScannerViewPlugin :
             return
         }
         val formats = call.argument<List<String>>("formats") ?: emptyList()
+        // Requested formats that resolve to nothing must error like the live
+        // path, not fall back to ML Kit's all-formats default.
+        if (BarcodeFormats.noneSupported(formats)) {
+            result.error(
+                "unsupportedFormats",
+                "None of the requested formats are supported on this device.",
+                null,
+            )
+            return
+        }
 
         val image = try {
             InputImage.fromFilePath(context, Uri.fromFile(File(path)))
@@ -174,7 +184,7 @@ class QrScannerViewPlugin :
                 val width = if (rotated) image.height else image.width
                 val height = if (rotated) image.width else image.height
                 val mapped = barcodes.mapNotNull {
-                    BarcodeFormats.wireMap(it, width, height)
+                    BarcodeFormats.wireMap(it, width, height, formats)
                 }
                 client.close()
                 result.success(mapped)

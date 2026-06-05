@@ -123,11 +123,11 @@ final class QrScannerPlatformView: NSObject,
     messenger: FlutterBinaryMessenger
   ) {
     methodChannel = FlutterMethodChannel(
-      name: "qr_scanner_view/scanner_\(viewId)",
+      name: "\(QrScannerViewPlugin.viewType)/scanner_\(viewId)",
       binaryMessenger: messenger
     )
     eventChannel = FlutterEventChannel(
-      name: "qr_scanner_view/scanner_\(viewId)/events",
+      name: "\(QrScannerViewPlugin.viewType)/scanner_\(viewId)/events",
       binaryMessenger: messenger
     )
     let params = args as? [String: Any] ?? [:]
@@ -598,6 +598,9 @@ final class QrScannerPlatformView: NSObject,
       if !self.isPaused {
         self.applyMetadataTypes()
         self.applyScanWindow()
+        // Re-resolve the published state against the new input, as
+        // runSession/resume do; applyState dedups the unchanged case.
+        self.emitScanningOrUnsupported()
       }
       self.applyTorch()
       self.applyZoom(self.requestedZoom)

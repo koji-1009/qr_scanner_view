@@ -125,7 +125,8 @@ class DetectionOptions {
     this.scanWindow,
   });
 
-  /// Symbologies to detect.
+  /// Symbologies to detect. See [BarcodeFormat.codabar] for its iOS
+  /// version floor.
   final Set<BarcodeFormat> formats;
 
   /// How detections are forwarded; see [DetectionMode].
@@ -133,7 +134,7 @@ class DetectionOptions {
 
   /// In [DetectionMode.noDuplicates], how long a continuously visible code
   /// stays suppressed. When null it stays suppressed while it remains in
-  /// view.
+  /// view. Non-positive values are treated as null.
   final Duration? timeout;
 
   /// Restricts detection to this region, in the same normalized 0.0..1.0

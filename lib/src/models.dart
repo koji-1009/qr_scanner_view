@@ -13,11 +13,20 @@ enum BarcodeFormat {
   pdf417,
   ean13,
   ean8,
+
+  /// A UPC-A symbol is a zero-prefixed [ean13] (the bars are identical).
+  /// Reported as upcA (12 digits) when requested; a request for only [ean13]
+  /// receives the same symbol as a 13-digit zero-prefixed ean13. Identical
+  /// on both platforms.
   upcA,
   upcE,
   code39,
   code93,
   code128,
+
+  /// On iOS, detected by `QrScanner.analyzeImage` from iOS 15.0 and by live
+  /// scanning from iOS 15.4; never detected on earlier versions. No
+  /// constraint on Android.
   codabar,
   itf,
   unknown,

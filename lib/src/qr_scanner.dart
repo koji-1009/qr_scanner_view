@@ -35,7 +35,9 @@ abstract final class QrScanner {
   /// Uses ML Kit on Android and Apple Vision on iOS. Returned
   /// [Barcode.corners] are normalized 0.0..1.0 in the EXIF-upright image's
   /// coordinate space (matching how `Image.file` renders it). Throws a
-  /// [PlatformException] when the image cannot be read or analyzed.
+  /// [PlatformException] when the image cannot be read or analyzed, or with
+  /// code `unsupportedFormats` when none of the requested [formats] is
+  /// detectable on the device (e.g. [BarcodeFormat.codabar] needs iOS 15.0+).
   static Future<List<Barcode>> analyzeImage(
     String path, {
     Set<BarcodeFormat> formats = kAllFormats,
@@ -55,6 +57,11 @@ abstract final class QrScanner {
 
   /// Prompts for camera permission when the OS still allows prompting, and
   /// returns the resulting status.
+  ///
+  /// On Android this throws a [PlatformException] when no foreground Activity
+  /// is available or the Activity is detached mid-request (code
+  /// `activityUnavailable`), or when another request is already in progress
+  /// (code `requestInProgress`); iOS always returns a status.
   static Future<CameraPermissionStatus> requestPermission() async {
     final status = await _channel.invokeMethod<String>('requestPermission');
     return _permissionStatusByName[status] ?? .denied;

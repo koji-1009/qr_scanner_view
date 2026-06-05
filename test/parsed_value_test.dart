@@ -141,6 +141,24 @@ void main() {
               as ContactValue;
       expect(contact.name, 'サラ 山田');
     });
+
+    test(
+      'vCard QP value with a malformed trailing = keeps the next property',
+      () {
+        final contact =
+            parse(
+                  [
+                    'BEGIN:VCARD',
+                    'VERSION:2.1',
+                    'NOTE;ENCODING=QUOTED-PRINTABLE:partial=',
+                    'TEL:+123456',
+                    'END:VCARD',
+                  ].join('\r\n'),
+                )
+                as ContactValue;
+        expect(contact.phones, ['+123456']);
+      },
+    );
   });
 
   group('calendar event', () {

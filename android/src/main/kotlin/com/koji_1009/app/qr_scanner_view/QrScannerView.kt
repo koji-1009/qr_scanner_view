@@ -82,6 +82,10 @@ class QrScannerView(
      * iOS `unsupportedFormats` error instead of silently scanning everything. */
     private val formatsUnsupported: Boolean
 
+    /** Wire codes from creationParams; read per frame by [onAnalysisResult]
+     * for the upcA/ean13 emission folding. */
+    private val requestedFormats: List<String>
+
     private var requestedLens: String =
         (creationParams["camera"] as? String) ?: "auto"
     private var requestedZoom: Float =
@@ -122,15 +126,18 @@ class QrScannerView(
 
     private val appLifecycleObserver = LifecycleEventObserver { _, event ->
         when (event) {
-            Lifecycle.Event.ON_STOP ->
+            Lifecycle.Event.ON_STOP -> {
+                isBackgrounded = true
                 if (desiredScanning &&
                     lifecycleRegistry.currentState.isAtLeast(Lifecycle.State.STARTED)
                 ) {
                     lifecycleRegistry.currentState = Lifecycle.State.CREATED
                     if (!isPaused) emitState("ready")
                 }
+            }
 
-            Lifecycle.Event.ON_START ->
+            Lifecycle.Event.ON_START -> {
+                isBackgrounded = false
                 if (desiredScanning &&
                     lifecycleRegistry.currentState == Lifecycle.State.CREATED
                 ) {
@@ -138,17 +145,23 @@ class QrScannerView(
                     applyCameraOptions()
                     emitStreamingState()
                 }
+            }
 
             else -> Unit
         }
     }
 
+    /** Main-thread mirror of the process lifecycle, consulted by
+     * [configureAndRun] so a bind resolving in the background stays at
+     * CREATED until the ON_START handler resumes it. */
+    private var isBackgrounded = false
+
     init {
         @Suppress("UNCHECKED_CAST")
         val formats = (creationParams["formats"] as? List<String>) ?: emptyList()
+        requestedFormats = formats
         scanner = BarcodeScanning.getClient(BarcodeFormats.scannerOptions(formats))
-        formatsUnsupported = formats.isNotEmpty() &&
-                formats.none { BarcodeFormats.CODE_TO_FORMAT.containsKey(it) }
+        formatsUnsupported = BarcodeFormats.noneSupported(formats)
 
         scanWindow = scanWindowFromMap(creationParams["scanWindow"] as? Map<*, *>)
 
@@ -183,7 +196,9 @@ class QrScannerView(
         eventChannel.setStreamHandler(this)
 
         lifecycleRegistry.currentState = Lifecycle.State.CREATED
-        ProcessLifecycleOwner.get().lifecycle.addObserver(appLifecycleObserver)
+        val processLifecycle = ProcessLifecycleOwner.get().lifecycle
+        isBackgrounded = !processLifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)
+        processLifecycle.addObserver(appLifecycleObserver)
     }
 
     override fun getView(): View = previewView
@@ -412,6 +427,9 @@ class QrScannerView(
         }
         cameraController.cameraSelector = selector
         emitState("ready")
+        // Backgrounded while initializing: stay at CREATED; the ON_START
+        // handler resumes the bind on foreground.
+        if (isBackgrounded) return
         lifecycleRegistry.currentState = Lifecycle.State.RESUMED
         applyCameraOptions()
         emitStreamingState()
@@ -573,14 +591,17 @@ class QrScannerView(
         if (barcodes.isEmpty()) return
         val w = viewWidth
         val h = viewHeight
-        val window = if (w > 0 && h > 0) scanWindow else null
+        // A configured scan window cannot be applied before the first layout;
+        // hold the frame back rather than emit unfiltered detections.
+        val window = scanWindow
+        if (window != null && (w <= 0 || h <= 0)) return
         // Single pass: this runs per frame, so no intermediate lists.
         val mapped = ArrayList<Map<String, Any?>>(barcodes.size)
         for (barcode in barcodes) {
             if (window != null && !isInWindow(barcode.cornerPoints, window, w, h)) {
                 continue
             }
-            BarcodeFormats.wireMap(barcode, w, h)?.let(mapped::add)
+            BarcodeFormats.wireMap(barcode, w, h, requestedFormats)?.let(mapped::add)
         }
         if (mapped.isNotEmpty()) {
             emit(mapOf("type" to "barcodes", "barcodes" to mapped))

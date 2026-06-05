@@ -359,6 +359,24 @@ void main() {
       await controller.dispose();
     });
 
+    test('noDuplicates treats a non-positive timeout as null', () async {
+      final controller = QrScannerController(
+        viewId,
+        detection: const DetectionOptions(
+          mode: .noDuplicates,
+          timeout: Duration.zero,
+        ),
+      );
+      final seen = <String>[];
+      controller.barcodes.listen((b) => seen.add(b.value));
+
+      await pushBarcode('a');
+      await pushBarcode('a');
+
+      expect(seen, ['a']);
+      await controller.dispose();
+    });
+
     test('scanWindow drops barcodes outside the window', () async {
       final controller = QrScannerController(
         viewId,
@@ -489,6 +507,34 @@ void main() {
   });
 
   group('scanOnce', () {
+    test('picks the code nearest the preview center', () async {
+      final controller = QrScannerController(viewId);
+      final future = controller.scanOnce();
+      await Future<void>.delayed(Duration.zero);
+
+      await pushFrame([
+        {
+          'value': 'edge',
+          'format': 'qr',
+          'corners': [
+            {'x': 0.0, 'y': 0.0},
+            {'x': 0.1, 'y': 0.1},
+          ],
+        },
+        {
+          'value': 'center',
+          'format': 'qr',
+          'corners': [
+            {'x': 0.45, 'y': 0.45},
+            {'x': 0.55, 'y': 0.55},
+          ],
+        },
+      ]);
+
+      expect((await future)?.value, 'center');
+      await controller.dispose();
+    });
+
     test('starts, completes with the first detection, then stops', () async {
       final controller = QrScannerController(viewId);
       final future = controller.scanOnce();
