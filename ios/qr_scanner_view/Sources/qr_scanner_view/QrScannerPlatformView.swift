@@ -38,19 +38,51 @@ final class ScannerPreviewView: UIView {
 }
 
 /// FlutterEventChannel retains its stream handler for the engine's lifetime;
-/// this weak hop keeps the platform view deallocatable.
+/// this weak hop keeps the platform view deallocatable. It also owns the
+/// channel registration: the framework unmounts child elements first, so the
+/// platform view is torn down before the Dart-side stream subscription
+/// cancels. Unregistering at teardown would make that late cancel a
+/// MissingPluginException (and a fresh replacement handler would answer it
+/// with "No active stream to cancel"), so while a subscription is active the
+/// registration outlives [detach] and is released by the cancel itself.
 final class WeakStreamHandler: NSObject, FlutterStreamHandler {
   weak var delegate: QrScannerPlatformView?
+  private var channel: FlutterEventChannel?
+  private var listenActive = false
+  private var isDetached = false
+
+  func attach(to channel: FlutterEventChannel) {
+    self.channel = channel
+    channel.setStreamHandler(self)
+  }
+
+  func detach() {
+    isDetached = true
+    if !listenActive { unregister() }
+  }
+
+  private func unregister() {
+    channel?.setStreamHandler(nil)
+    channel = nil
+  }
 
   func onListen(
     withArguments arguments: Any?,
     eventSink events: @escaping FlutterEventSink
   ) -> FlutterError? {
-    return delegate?.onListen(withArguments: arguments, eventSink: events)
+    listenActive = true
+    guard !isDetached, let delegate else {
+      events(FlutterEndOfEventStream)
+      return nil
+    }
+    return delegate.onListen(withArguments: arguments, eventSink: events)
   }
 
   func onCancel(withArguments arguments: Any?) -> FlutterError? {
-    return delegate?.onCancel(withArguments: arguments)
+    listenActive = false
+    let error = delegate?.onCancel(withArguments: arguments)
+    if isDetached { unregister() }
+    return error
   }
 }
 
@@ -167,7 +199,7 @@ final class QrScannerPlatformView: NSObject,
       self?.handle(call, result: result)
     }
     streamProxy.delegate = self
-    eventChannel.setStreamHandler(streamProxy)
+    streamProxy.attach(to: eventChannel)
     metadataProxy.delegate = self
 
     let center = NotificationCenter.default
@@ -199,7 +231,7 @@ final class QrScannerPlatformView: NSObject,
     wantsRunning = false
     NotificationCenter.default.removeObserver(self)
     methodChannel.setMethodCallHandler(nil)
-    eventChannel.setStreamHandler(nil)
+    streamProxy.detach()
     eventSink = nil
     metadataOutput.setMetadataObjectsDelegate(nil, queue: nil)
     let capturedSession = session

@@ -65,6 +65,7 @@ class QrScannerView(
         MethodChannel(messenger, "${QrScannerViewPlugin.VIEW_TYPE}/scanner_$viewId")
     private val eventChannel =
         EventChannel(messenger, "${QrScannerViewPlugin.VIEW_TYPE}/scanner_$viewId/events")
+    private val streamHandler = DisposeAwareStreamHandler(eventChannel, this)
     private var eventSink: EventChannel.EventSink? = null
     private var lastState: String? = null
     private var lastErrorEvent: Map<String, Any?>? = null
@@ -193,7 +194,7 @@ class QrScannerView(
         cameraController.bindToLifecycle(this)
 
         methodChannel.setMethodCallHandler(this)
-        eventChannel.setStreamHandler(this)
+        streamHandler.attach()
 
         lifecycleRegistry.currentState = Lifecycle.State.CREATED
         val processLifecycle = ProcessLifecycleOwner.get().lifecycle
@@ -211,7 +212,7 @@ class QrScannerView(
         ProcessLifecycleOwner.get().lifecycle.removeObserver(appLifecycleObserver)
         unregisterPermissionListener()
         methodChannel.setMethodCallHandler(null)
-        eventChannel.setStreamHandler(null)
+        streamHandler.dispose()
         eventSink = null
         cameraController.clearImageAnalysisAnalyzer()
         previewView.controller = null
