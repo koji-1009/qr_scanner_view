@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.1
+
+- Fixed the `MissingPluginException` reported for the event channel's `cancel` after leaving the scanner screen: the channel registration now stays alive until the Dart-side cancel lands (Android and iOS).
+
 ## 0.2.0
 
 - `analyzeImage` now reports `unsupportedFormats` when none of the requested formats is available on the device, instead of detecting every symbology.
