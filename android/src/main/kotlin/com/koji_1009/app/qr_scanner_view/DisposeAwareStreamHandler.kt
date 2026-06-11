@@ -5,12 +5,10 @@ import io.flutter.plugin.common.EventChannel
 /**
  * Owns the event channel's handler registration for a platform view.
  *
- * The framework unmounts child elements first, so the platform view is
- * disposed before the Dart-side stream subscription cancels. Unregistering at
- * dispose would make that late cancel a MissingPluginException (and a fresh
- * replacement handler would answer it with "No active stream to cancel"), so
- * while a subscription is active the registration outlives [dispose] and is
- * released by the cancel itself.
+ * The framework disposes the platform view before the Dart-side stream
+ * subscription cancels, so unregistering at [dispose] would leave that late
+ * cancel without a handler. While a subscription is active the registration
+ * outlives [dispose] and is released by the cancel itself.
  */
 internal class DisposeAwareStreamHandler(
     private val channel: EventChannel,

@@ -39,12 +39,11 @@ final class ScannerPreviewView: UIView {
 
 /// FlutterEventChannel retains its stream handler for the engine's lifetime;
 /// this weak hop keeps the platform view deallocatable. It also owns the
-/// channel registration: the framework unmounts child elements first, so the
-/// platform view is torn down before the Dart-side stream subscription
-/// cancels. Unregistering at teardown would make that late cancel a
-/// MissingPluginException (and a fresh replacement handler would answer it
-/// with "No active stream to cancel"), so while a subscription is active the
-/// registration outlives [detach] and is released by the cancel itself.
+/// channel registration: the framework tears the platform view down before
+/// the Dart-side stream subscription cancels, so unregistering at teardown
+/// would leave that late cancel without a handler. While a subscription is
+/// active the registration outlives `detach()` and is released by the cancel
+/// itself.
 final class WeakStreamHandler: NSObject, FlutterStreamHandler {
   weak var delegate: QrScannerPlatformView?
   private var channel: FlutterEventChannel?
