@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- iOS now re-converts the scan window's `rectOfInterest` whenever the preview's bounds or orientation change, so a rotation or resize no longer filters detections against the stale layout.
+
 ## 0.2.2
 
 - Fixed a fatal `RejectedExecutionException` on Android when an ML Kit detection was still in flight while the scanner view was disposed.

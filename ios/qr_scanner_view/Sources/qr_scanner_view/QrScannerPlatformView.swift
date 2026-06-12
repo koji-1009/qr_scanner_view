@@ -6,6 +6,13 @@ import UIKit
 final class ScannerPreviewView: UIView {
   let previewLayer = AVCaptureVideoPreviewLayer()
 
+  /// Called on main when the bounds or video orientation changed; the
+  /// layer-to-output mapping changed with them, so a converted scan window
+  /// must be recomputed.
+  var onLayoutChanged: (() -> Void)?
+  private var lastBounds = CGRect.zero
+  private var lastOrientation = AVCaptureVideoOrientation.portrait
+
   override init(frame: CGRect) {
     super.init(frame: frame)
     previewLayer.videoGravity = .resizeAspectFill
@@ -19,10 +26,16 @@ final class ScannerPreviewView: UIView {
   override func layoutSubviews() {
     super.layoutSubviews()
     previewLayer.frame = bounds
+    let orientation = currentVideoOrientation()
     if let connection = previewLayer.connection,
       connection.isVideoOrientationSupported
     {
-      connection.videoOrientation = currentVideoOrientation()
+      connection.videoOrientation = orientation
+    }
+    if bounds != lastBounds || orientation != lastOrientation {
+      lastBounds = bounds
+      lastOrientation = orientation
+      onLayoutChanged?()
     }
   }
 
@@ -125,6 +138,7 @@ final class QrScannerPlatformView: NSObject,
   /// Mutated only on the session queue after init.
   private var requestedLens: String
   private var requestedZoom: Double
+  /// Normalized view-space scan window; main thread only after init.
   private var scanWindow: CGRect?
   /// Normalized view-space focus point; main thread only after init.
   private var focusPoint: CGPoint?
@@ -193,6 +207,12 @@ final class QrScannerPlatformView: NSObject,
     preview.previewLayer.session = session
     preview.previewLayer.videoGravity =
       Self.gravity(for: (params["fit"] as? String) ?? "cover")
+    // A rotation or resize invalidates the converted rectOfInterest; without
+    // the re-apply, the stale rect keeps filtering against the old layout.
+    preview.onLayoutChanged = { [weak self] in
+      guard let self = self, self.scanWindow != nil else { return }
+      self.applyScanWindow()
+    }
 
     methodChannel.setMethodCallHandler { [weak self] call, result in
       self?.handle(call, result: result)
@@ -874,7 +894,7 @@ final class QrScannerPlatformView: NSObject,
   static func metadataTypes(
     for formats: [String]
   ) -> [AVMetadataObject.ObjectType] {
-    let codes = BarcodeWire.requestedCodes(formats, allCodes: Array(typeMap.keys))
+    let codes = BarcodeWire.requestedCodes(formats)
     var types = codes.compactMap { typeMap[$0] }
     // itf covers both ITF-14 and generic interleaved 2 of 5.
     if codes.contains("itf"), !types.contains(.interleaved2of5) {
