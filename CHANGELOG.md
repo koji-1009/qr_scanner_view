@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.2
+
+- Fixed a fatal `RejectedExecutionException` on Android when an ML Kit detection was still in flight while the scanner view was disposed.
+- The disposed Android view is released right away instead of staying retained until the event stream's late `cancel` arrives.
+
 ## 0.2.1
 
 - Fixed the `MissingPluginException` reported for the event channel's `cancel` after leaving the scanner screen: the channel registration now stays alive until the Dart-side cancel lands (Android and iOS).
