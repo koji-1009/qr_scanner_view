@@ -45,6 +45,22 @@ void main() {
       expect(barcodes.single.corners.single.dx, 0.25);
     });
 
+    test(
+      'resolves empty for an empty formats set without a native call',
+      () async {
+        var called = false;
+        messenger.setMockMethodCallHandler(channel, (call) async {
+          called = true;
+          return null;
+        });
+        expect(
+          await QrScanner.analyzeImage('/tmp/image.png', formats: {}),
+          isEmpty,
+        );
+        expect(called, isFalse);
+      },
+    );
+
     test('returns an empty list for a null result', () async {
       messenger.setMockMethodCallHandler(channel, (call) async => null);
       expect(await QrScanner.analyzeImage('/tmp/none.png'), isEmpty);

@@ -93,6 +93,10 @@ class QrScannerView(
      * iOS `unsupportedFormats` error instead of silently scanning everything. */
     private val formatsUnsupported: Boolean
 
+    /** An empty request asks for no formats: the preview streams without any
+     * inference and no `unsupportedFormats` error. */
+    private val formatsEmpty: Boolean
+
     /** Wire codes from creationParams; read per frame by [onAnalysisResult]
      * for the upcA/ean13 emission folding. */
     private val requestedFormats: List<String>
@@ -173,6 +177,7 @@ class QrScannerView(
         requestedFormats = formats
         scanner = BarcodeScanning.getClient(BarcodeFormats.scannerOptions(formats))
         formatsUnsupported = BarcodeFormats.noneSupported(formats)
+        formatsEmpty = formats.isEmpty()
 
         scanWindow = scanWindowFromMap(creationParams["scanWindow"] as? Map<*, *>)
 
@@ -349,6 +354,8 @@ class QrScannerView(
             startCamera()
             return
         }
+        // A request is already on screen; its result drives this start() too.
+        if (awaitingPermissionResult) return
         if (!registerPermissionListener()) {
             emitError("activityUnavailable", "No foreground Activity is available.")
             return
@@ -616,8 +623,8 @@ class QrScannerView(
     }
 
     private fun attachAnalyzer() {
-        // No supported format to detect; the preview stays live without inference.
-        if (formatsUnsupported) return
+        // No format to detect; the preview stays live without inference.
+        if (formatsUnsupported || formatsEmpty) return
         cameraController.setImageAnalysisAnalyzer(analysisExecutor, analyzer)
     }
 

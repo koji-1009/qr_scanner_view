@@ -125,7 +125,8 @@ class DetectionOptions {
     this.scanWindow,
   });
 
-  /// Symbologies to detect. See [BarcodeFormat.codabar] for its iOS
+  /// Symbologies to detect. An empty set detects nothing: the preview
+  /// streams without any detection. See [BarcodeFormat.codabar] for its iOS
   /// version floor.
   final Set<BarcodeFormat> formats;
 
