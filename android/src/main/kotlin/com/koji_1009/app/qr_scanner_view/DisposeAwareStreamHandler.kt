@@ -12,24 +12,28 @@ import io.flutter.plugin.common.EventChannel
  */
 internal class DisposeAwareStreamHandler(
     private val channel: EventChannel,
-    private val delegate: EventChannel.StreamHandler,
+    delegate: EventChannel.StreamHandler,
 ) : EventChannel.StreamHandler {
 
+    /** Cleared at [dispose] (doubling as the disposed mark) so the deferred
+     * registration does not keep the disposed view reachable while waiting
+     * for the Dart-side cancel. */
+    private var delegate: EventChannel.StreamHandler? = delegate
     private var listenActive = false
-    private var disposed = false
 
     fun attach() {
         channel.setStreamHandler(this)
     }
 
     fun dispose() {
-        disposed = true
+        delegate = null
         if (!listenActive) channel.setStreamHandler(null)
     }
 
     override fun onListen(arguments: Any?, events: EventChannel.EventSink?) {
         listenActive = true
-        if (disposed) {
+        val delegate = this.delegate
+        if (delegate == null) {
             events?.endOfStream()
             return
         }
@@ -38,7 +42,8 @@ internal class DisposeAwareStreamHandler(
 
     override fun onCancel(arguments: Any?) {
         listenActive = false
-        delegate.onCancel(arguments)
-        if (disposed) channel.setStreamHandler(null)
+        val delegate = this.delegate
+        delegate?.onCancel(arguments)
+        if (delegate == null) channel.setStreamHandler(null)
     }
 }

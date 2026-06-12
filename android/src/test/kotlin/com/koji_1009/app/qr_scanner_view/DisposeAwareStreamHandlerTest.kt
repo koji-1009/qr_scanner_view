@@ -48,7 +48,8 @@ class DisposeAwareStreamHandlerTest {
         handler.onCancel(null)
 
         verify(channel).setStreamHandler(null)
-        assertEquals(listOf("listen", "cancel"), delegate.calls)
+        // The delegate is released at dispose, so the late cancel stops here.
+        assertEquals(listOf("listen"), delegate.calls)
     }
 
     @Test
