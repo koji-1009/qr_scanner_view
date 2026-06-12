@@ -46,23 +46,21 @@ final class ScannerPreviewView: UIView {
 /// itself.
 final class WeakStreamHandler: NSObject, FlutterStreamHandler {
   weak var delegate: QrScannerPlatformView?
-  private var channel: FlutterEventChannel?
+  private let channel: FlutterEventChannel
   private var listenActive = false
   private var isDetached = false
 
-  func attach(to channel: FlutterEventChannel) {
+  init(channel: FlutterEventChannel) {
     self.channel = channel
+  }
+
+  func attach() {
     channel.setStreamHandler(self)
   }
 
   func detach() {
     isDetached = true
-    if !listenActive { unregister() }
-  }
-
-  private func unregister() {
-    channel?.setStreamHandler(nil)
-    channel = nil
+    if !listenActive { channel.setStreamHandler(nil) }
   }
 
   func onListen(
@@ -80,7 +78,7 @@ final class WeakStreamHandler: NSObject, FlutterStreamHandler {
   func onCancel(withArguments arguments: Any?) -> FlutterError? {
     listenActive = false
     let error = delegate?.onCancel(withArguments: arguments)
-    if isDetached { unregister() }
+    if isDetached { channel.setStreamHandler(nil) }
     return error
   }
 }
@@ -116,8 +114,8 @@ final class QrScannerPlatformView: NSObject,
   private let sessionQueue = DispatchQueue(label: "qr_scanner_view.session")
 
   private let methodChannel: FlutterMethodChannel
-  private let eventChannel: FlutterEventChannel
-  private let streamProxy = WeakStreamHandler()
+  /// Holds the event channel and owns its registration lifetime.
+  private let streamProxy: WeakStreamHandler
   private let metadataProxy = WeakMetadataDelegate()
   private var eventSink: FlutterEventSink?
   private var lastState: String?
@@ -173,9 +171,11 @@ final class QrScannerPlatformView: NSObject,
       name: "\(QrScannerViewPlugin.viewType)/scanner_\(viewId)",
       binaryMessenger: messenger
     )
-    eventChannel = FlutterEventChannel(
-      name: "\(QrScannerViewPlugin.viewType)/scanner_\(viewId)/events",
-      binaryMessenger: messenger
+    streamProxy = WeakStreamHandler(
+      channel: FlutterEventChannel(
+        name: "\(QrScannerViewPlugin.viewType)/scanner_\(viewId)/events",
+        binaryMessenger: messenger
+      )
     )
     let params = args as? [String: Any] ?? [:]
     requestedFormats = (params["formats"] as? [String]) ?? []
@@ -198,7 +198,7 @@ final class QrScannerPlatformView: NSObject,
       self?.handle(call, result: result)
     }
     streamProxy.delegate = self
-    streamProxy.attach(to: eventChannel)
+    streamProxy.attach()
     metadataProxy.delegate = self
 
     let center = NotificationCenter.default
