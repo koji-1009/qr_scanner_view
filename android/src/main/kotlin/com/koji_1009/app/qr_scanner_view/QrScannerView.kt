@@ -35,8 +35,9 @@ import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.PluginRegistry
 import io.flutter.plugin.platform.PlatformView
-import java.util.concurrent.Executors
-import java.util.concurrent.RejectedExecutionException
+import java.util.concurrent.LinkedBlockingQueue
+import java.util.concurrent.ThreadPoolExecutor
+import java.util.concurrent.TimeUnit
 
 /**
  * Scanner platform view backed by CameraX and ML Kit. Detection results arrive
@@ -74,7 +75,16 @@ class QrScannerView(
     override val lifecycle: Lifecycle get() = lifecycleRegistry
 
     private val mainExecutor = ContextCompat.getMainExecutor(applicationContext)
-    private val analysisExecutor = Executors.newSingleThreadExecutor()
+
+    /** Single thread owning ML Kit inference; shut down by [dispose].
+     * [MlKitAnalyzer] and the GMS Tasks library post detection callbacks here
+     * from their own threads without guarding rejection, so DiscardPolicy:
+     * a callback landing after the shutdown must be dropped, not thrown. */
+    private val analysisExecutor = ThreadPoolExecutor(
+        1, 1, 0L, TimeUnit.MILLISECONDS,
+        LinkedBlockingQueue(),
+        ThreadPoolExecutor.DiscardPolicy(),
+    )
 
     private val scanner: BarcodeScanner
     private val analyzer: MlKitAnalyzer
@@ -218,11 +228,7 @@ class QrScannerView(
         previewView.controller = null
         lifecycleRegistry.currentState = Lifecycle.State.DESTROYED
         // Closing on the analysis thread orders it after any in-flight frame.
-        try {
-            analysisExecutor.execute { scanner.close() }
-        } catch (e: RejectedExecutionException) {
-            scanner.close()
-        }
+        analysisExecutor.execute { scanner.close() }
         analysisExecutor.shutdown()
     }
 
