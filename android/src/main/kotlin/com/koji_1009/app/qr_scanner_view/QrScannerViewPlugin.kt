@@ -157,6 +157,11 @@ class QrScannerViewPlugin :
             return
         }
         val formats = call.argument<List<String>>("formats") ?: emptyList()
+        // An empty request asks for no formats: nothing can match.
+        if (formats.isEmpty()) {
+            result.success(emptyList<Map<String, Any?>>())
+            return
+        }
         // Requested formats that resolve to nothing must error like the live
         // path, not fall back to ML Kit's all-formats default.
         if (BarcodeFormats.noneSupported(formats)) {

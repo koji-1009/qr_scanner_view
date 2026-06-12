@@ -3,9 +3,9 @@ import Foundation
 enum BarcodeWire {
   /// Wire codes to request from a detector. Neither AVFoundation nor Vision
   /// has a upcA type (UPC-A arrives as ean13), so asking for upcA folds
-  /// ean13 into the request; an empty request means every supported code.
-  static func requestedCodes(_ formats: [String], allCodes: [String]) -> [String] {
-    var codes = formats.isEmpty ? allCodes : formats
+  /// ean13 into the request; an empty request means no codes at all.
+  static func requestedCodes(_ formats: [String]) -> [String] {
+    var codes = formats
     if codes.contains("upcA"), !codes.contains("ean13") {
       codes.append("ean13")
     }

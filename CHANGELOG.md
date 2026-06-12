@@ -3,6 +3,7 @@
 ## Unreleased
 
 - iOS now re-converts the scan window's `rectOfInterest` whenever the preview's bounds or orientation change, so a rotation or resize no longer filters detections against the stale layout.
+- An empty `formats` set now detects nothing: the preview streams without detection and `analyzeImage` resolves to an empty list (previously an empty set scanned every supported format).
 
 ## 0.2.2
 

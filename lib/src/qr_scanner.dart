@@ -35,7 +35,8 @@ abstract final class QrScanner {
   ///
   /// Uses ML Kit on Android and Apple Vision on iOS. Returned
   /// [Barcode.corners] are normalized 0.0..1.0 in the EXIF-upright image's
-  /// coordinate space (matching how `Image.file` renders it). Throws a
+  /// coordinate space (matching how `Image.file` renders it). An empty
+  /// [formats] set requests nothing and resolves to an empty list. Throws a
   /// [PlatformException] when the image cannot be read or analyzed, or with
   /// code `unsupportedFormats` when none of the requested [formats] is
   /// detectable on the device (e.g. [BarcodeFormat.codabar] needs iOS 15.0+).
@@ -43,6 +44,7 @@ abstract final class QrScanner {
     String path, {
     Set<BarcodeFormat> formats = kAllFormats,
   }) async {
+    if (formats.isEmpty) return const <Barcode>[];
     final results = await _channel.invokeListMethod<dynamic>('analyzeImage', {
       'path': path,
       'formats': formatsToWire(formats),

@@ -91,6 +91,11 @@ public class QrScannerViewPlugin: NSObject, FlutterPlugin {
     formats: [String],
     result: @escaping FlutterResult
   ) {
+    // An empty request asks for no formats: nothing can match.
+    if formats.isEmpty {
+      result([[String: Any]]())
+      return
+    }
     DispatchQueue.global(qos: .userInitiated).async {
       let url = URL(fileURLWithPath: path)
       let symbologies = Self.symbologies(for: formats)
@@ -197,7 +202,7 @@ public class QrScannerViewPlugin: NSObject, FlutterPlugin {
   }()
 
   private static func symbologies(for formats: [String]) -> [VNBarcodeSymbology] {
-    let codes = BarcodeWire.requestedCodes(formats, allCodes: Array(symbologyMap.keys))
+    let codes = BarcodeWire.requestedCodes(formats)
     return codes.flatMap { symbologyMap[$0] ?? [] }
   }
 
