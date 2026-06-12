@@ -354,6 +354,8 @@ class QrScannerView(
             startCamera()
             return
         }
+        // A request is already on screen; its result drives this start() too.
+        if (awaitingPermissionResult) return
         if (!registerPermissionListener()) {
             emitError("activityUnavailable", "No foreground Activity is available.")
             return
