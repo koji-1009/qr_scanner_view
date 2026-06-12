@@ -7,18 +7,17 @@ final class BarcodeWireTests: XCTestCase {
 
   // MARK: - requestedCodes
 
-  func testEmptyRequestMeansAllCodes() {
-    let all = ["qr", "ean13", "upcA"]
-    XCTAssertEqual(BarcodeWire.requestedCodes([], allCodes: all), all)
+  func testEmptyRequestMeansNoCodes() {
+    XCTAssertTrue(BarcodeWire.requestedCodes([]).isEmpty)
   }
 
   func testUpcAFoldsEan13IntoTheRequest() {
     XCTAssertEqual(
-      BarcodeWire.requestedCodes(["upcA"], allCodes: []),
+      BarcodeWire.requestedCodes(["upcA"]),
       ["upcA", "ean13"]
     )
     XCTAssertEqual(
-      BarcodeWire.requestedCodes(["upcA", "ean13"], allCodes: []),
+      BarcodeWire.requestedCodes(["upcA", "ean13"]),
       ["upcA", "ean13"]
     )
   }
