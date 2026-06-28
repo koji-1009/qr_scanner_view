@@ -363,6 +363,11 @@ void main() {
       expect(parse('sms:?body=hi'), isA<TextValue>());
     });
 
+    test('mailto and sms recipients are percent-decoded', () {
+      expect(parse('mailto:a%40b.com'), const EmailValue(address: 'a@b.com'));
+      expect(parse('sms:%2B1%20555'), const SmsValue(number: '+1 555'));
+    });
+
     test('WPA3 and SAE map to wpa security', () {
       expect(
         parse('WIFI:S:a;T:WPA3;;'),
