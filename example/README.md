@@ -1,17 +1,29 @@
 # qr_scanner_view_example
 
-A new Flutter project.
+A runnable demo of [`qr_scanner_view`](../).
 
-## Getting Started
+It shows the full widget in use:
 
-This project is a starting point for a Flutter application.
+- A live `QrScannerView` filling the screen, with `onDetect` and a `frames`
+  listener.
+- An overlay (`overlayBuilder`) that paints a constant reticle plus a green
+  outline around every detected code, using the normalized `Barcode.corners`.
+- `placeholderBuilder` while the camera is starting and `errorBuilder` for the
+  permission / error states.
+- A control panel wired to the controller: zoom slider, torch toggle, lens
+  cycling (`auto` / `back` / `front`) and a `cover` / `contain` fit switch.
+- The last decoded value and its `ParsedValue` interpretation.
 
-A few resources to get you started if this is your first Flutter project:
+The panel uses fixed-height rows on purpose: resizing the preview rebinds the
+CameraX camera on Android (see the package README's "keep the view's size
+stable" note).
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+## Run
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+```sh
+cd example
+flutter run
+```
+
+iOS needs a camera and `NSCameraUsageDescription` (already set in the example's
+`Info.plist`); Android requests the permission at first scan.

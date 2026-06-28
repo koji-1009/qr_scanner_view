@@ -94,6 +94,20 @@ void main() {
       expect(await QrScanner.checkPermission(), CameraPermissionStatus.denied);
     });
 
+    test(
+      'checkPermission and requestPermission call distinct methods',
+      () async {
+        final methods = <String>[];
+        messenger.setMockMethodCallHandler(channel, (call) async {
+          methods.add(call.method);
+          return CameraPermissionStatus.granted.name;
+        });
+        await QrScanner.checkPermission();
+        await QrScanner.requestPermission();
+        expect(methods, ['checkPermission', 'requestPermission']);
+      },
+    );
+
     test('openAppSettings returns the native bool', () async {
       messenger.setMockMethodCallHandler(channel, (call) async {
         expect(call.method, 'openAppSettings');

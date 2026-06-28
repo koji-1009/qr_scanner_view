@@ -12,7 +12,8 @@ enum CameraPermissionStatus {
   /// is available to prompt from.
   notDetermined,
 
-  /// Denied, but the OS may prompt again.
+  /// Denied, but the OS may prompt again. Android only: iOS records the first
+  /// denial and never re-prompts, so it reports [permanentlyDenied] instead.
   denied,
 
   /// Denied and the OS will not prompt again; the user must change it in

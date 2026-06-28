@@ -79,6 +79,14 @@ void main() {
     expect(a, isNot(c));
   });
 
+  test('Barcode inequality includes corners', () {
+    const a = Barcode(value: 'v', format: .qr, corners: [Offset(0, 0)]);
+    const b = Barcode(value: 'v', format: .qr, corners: [Offset(1, 1)]);
+    const c = Barcode(value: 'v', format: .qr);
+    expect(a, isNot(b));
+    expect(a, isNot(c));
+  });
+
   test('corners list is unmodifiable', () {
     final barcode = barcodeFromWire({'value': 'v', 'format': 'qr'});
     expect(() => barcode.corners.add(Offset.zero), throwsUnsupportedError);
