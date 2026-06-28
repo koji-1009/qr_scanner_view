@@ -108,7 +108,9 @@ class DetectionOptions {
   final Duration? timeout;
 
   /// Restricts detection to this region, in the same normalized 0.0..1.0
-  /// preview coordinates as [Barcode.corners]. Null scans the whole preview.
+  /// preview coordinates as [Barcode.corners]. A detection is kept when the
+  /// centroid of its corners falls inside the window. Null scans the whole
+  /// preview.
   final Rect? scanWindow;
 
   DetectionOptions copyWith({

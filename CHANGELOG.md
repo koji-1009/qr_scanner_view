@@ -3,8 +3,12 @@
 ## Unreleased
 
 - Fixed `barcode.parsed` throwing a `FormatException` on `tel:` / `geo:` payloads with malformed percent-encoding; they now fall back to the raw value.
+- `mailto:` / `sms:` recipients are now percent-decoded, matching how subject/body are handled.
+- iOS now recovers the scanner from capture interruptions (phone calls, other apps, iPad multitasking) and a media-services reset, and surfaces other capture-session runtime errors as an error state.
+- `ScannerCapabilities` is now an immutable value type (`==` / `hashCode`, unmodifiable lens set).
 - Removed `validateScanWindow` / `validateFocusPoint` from the public API (now internal guards). `QrScannerView`, `setScanWindow` and `setFocusPoint` still validate and throw for out-of-range input.
 - Documented that `scanOnce` stops the controller's shared camera session on completion; don't pair it with continuous `onDetect` / stream scanning on the same controller.
+- Documented the centroid-based scan-window contract and how to fetch the ML Kit model at install time.
 
 ## 0.2.3
 
