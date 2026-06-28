@@ -118,7 +118,13 @@ See `example/` for both rules applied.
 
 A UPC-A symbol is a zero-prefixed EAN-13 (the bars are identical): requesting `upcA` yields 12-digit `upcA` results, while requesting only `ean13` yields the same symbols as 13-digit zero-prefixed `ean13` results — identically on both platforms.
 
-By default Android resolves barcodes through Google Play services (unbundled ML Kit): nothing is added to your APK, but devices without Play services cannot scan and the first scan on a device may wait for the model download. To bundle the model into the app instead, add to your app's `android/gradle.properties`:
+By default Android resolves barcodes through Google Play services (unbundled ML Kit): nothing is added to your APK, but devices without Play services cannot scan and the first scan on a device may wait for the model download. To fetch the model at install time instead (so the first scan doesn't wait), declare it in your app's `AndroidManifest.xml`:
+
+```xml
+<meta-data android:name="com.google.mlkit.vision.DEPENDENCIES" android:value="barcode" />
+```
+
+To bundle the model into the app instead, add to your app's `android/gradle.properties`:
 
 ```properties
 com.koji_1009.app.qr_scanner_view.useBundled=true

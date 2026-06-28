@@ -773,11 +773,20 @@ String? _queryParameter(Uri uri, String key) {
   return null;
 }
 
+/// Percent-decodes a URI path, leaving it raw on malformed encoding.
+String _decodeUriPath(String path) {
+  try {
+    return Uri.decodeComponent(path);
+  } catch (_) {
+    return path;
+  }
+}
+
 ParsedValue? _parseMailto(String value) {
   final uri = Uri.tryParse(value);
   if (uri == null || uri.path.isEmpty) return null;
   return EmailValue(
-    address: uri.path,
+    address: _decodeUriPath(uri.path),
     subject: _queryParameter(uri, 'subject'),
     body: _queryParameter(uri, 'body'),
   );
@@ -797,19 +806,17 @@ ParsedValue? _parseSmsTo(String value) {
 ParsedValue? _parseSmsUri(String value) {
   final uri = Uri.tryParse(value);
   if (uri == null || uri.path.isEmpty) return null;
-  return SmsValue(number: uri.path, message: _queryParameter(uri, 'body'));
+  return SmsValue(
+    number: _decodeUriPath(uri.path),
+    message: _queryParameter(uri, 'body'),
+  );
 }
 
 ParsedValue? _parseTel(String value) {
   var number = value.substring('TEL:'.length);
   final cut = number.indexOf(RegExp(r'[;?]'));
   if (cut >= 0) number = number.substring(0, cut);
-  try {
-    number = Uri.decodeComponent(number);
-  } catch (_) {
-    // Malformed percent-encoding (ArgumentError or FormatException); keep the
-    // raw digits.
-  }
+  number = _decodeUriPath(number);
   // Percent-encoded separators decode into new ones; cut those too.
   final decodedCut = number.indexOf(RegExp(r'[;?]'));
   if (decodedCut >= 0) number = number.substring(0, decodedCut);

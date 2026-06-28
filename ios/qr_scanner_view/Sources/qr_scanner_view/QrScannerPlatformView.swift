@@ -234,6 +234,24 @@ final class QrScannerPlatformView: NSObject,
       name: UIApplication.willEnterForegroundNotification,
       object: nil
     )
+    center.addObserver(
+      self,
+      selector: #selector(sessionRuntimeError(_:)),
+      name: AVCaptureSession.runtimeErrorNotification,
+      object: session
+    )
+    center.addObserver(
+      self,
+      selector: #selector(sessionWasInterrupted),
+      name: AVCaptureSession.wasInterruptedNotification,
+      object: session
+    )
+    center.addObserver(
+      self,
+      selector: #selector(sessionInterruptionEnded),
+      name: AVCaptureSession.interruptionEndedNotification,
+      object: session
+    )
   }
 
   func view() -> UIView { preview }
@@ -277,9 +295,50 @@ final class QrScannerPlatformView: NSObject,
 
   @objc private func appWillEnterForeground() {
     isBackgrounded = false
+    resumeSessionIfNeeded()
+  }
+
+  /// A media-services reset can be recovered by restarting the session; any
+  /// other runtime error leaves it stopped, so surface it.
+  @objc private func sessionRuntimeError(_ notification: Notification) {
+    guard let error = notification.userInfo?[AVCaptureSessionErrorKey] as? AVError
+    else { return }
+    if error.code == .mediaServicesWereReset {
+      resumeSessionIfNeeded()
+    } else {
+      emitError("configurationFailed", error.localizedDescription)
+    }
+  }
+
+  /// The system interrupted capture (phone call, another app, multi-app on
+  /// iPad). Reflect it like a background stop; resume on interruptionEnded.
+  @objc private func sessionWasInterrupted() {
+    sessionQueue.async { [weak self] in
+      guard let self = self, self.wantsRunning, !self.isPaused else { return }
+      self.emitState("ready")
+    }
+  }
+
+  /// The interruption ended. iOS may have left the session running (it
+  /// auto-resumes some interruptions) or stopped; re-publish the live state
+  /// either way.
+  @objc private func sessionInterruptionEnded() {
+    sessionQueue.async { [weak self] in
+      guard let self = self, self.wantsRunning, self.isConfigured, !self.isPaused
+      else { return }
+      if self.session.isRunning {
+        self.emitScanningOrUnsupported()
+      } else if !self.isBackgrounded {
+        self.runSession()
+      }
+    }
+  }
+
+  /// Runs on the session queue.
+  private func resumeSessionIfNeeded() {
     sessionQueue.async { [weak self] in
       guard let self = self, self.wantsRunning, self.isConfigured,
-        !self.session.isRunning
+        !self.isBackgrounded, !self.session.isRunning
       else { return }
       self.runSession()
     }
