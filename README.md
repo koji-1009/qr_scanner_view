@@ -55,7 +55,9 @@ final barcode = await controller.scanOnce(timeout: Duration(seconds: 30));
 final capabilities = await controller.getCapabilities(); // hasTorch, lenses…
 ```
 
-Streams: `controller.barcodes` (filtered by `DetectionMode`), `controller.frames` (all codes per camera frame), `controller.state` (+ `currentState`), `controller.errors` (machine-readable codes).
+`scanOnce` stops the controller's camera session when it completes. Because `QrScannerView` shares its controller, don't pair it with continuous `onDetect` / stream scanning on the same view — the live scan stops after the first detection; call `start()` to resume.
+
+Streams: `controller.barcodes` (filtered by `DetectionMode`), `controller.frames` (every code per frame within the scan window, unfiltered by `DetectionMode`), `controller.state` (+ `currentState`), `controller.errors` (machine-readable codes).
 
 `DetectionOptions.formats` / `mode` / `timeout` are fixed at creation — change the widget `key` to apply new values (this recreates the camera session). Everything else can change on rebuild or through the controller.
 

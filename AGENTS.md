@@ -10,9 +10,9 @@ Swift (`ios/`).
   values) spans all three languages. `lib/src/wire.dart` owns the Dart side;
   `android/.../QrScannerView.kt` and `ios/.../QrScannerPlatformView.swift`
   mirror it. A change to any wire shape must be applied to all three layers.
-- Channel names derive from one prefix: `kViewType` (`wire.dart`) and
-  `QrScannerViewPlugin.VIEW_TYPE` (Kotlin). Build names from those constants,
-  never as bare literals.
+- Channel names derive from one prefix: `kViewType` (`wire.dart`),
+  `QrScannerViewPlugin.VIEW_TYPE` (Kotlin) and `QrScannerViewPlugin.viewType`
+  (Swift). Build names from those constants, never as bare literals.
 - Only decoded values cross the platform channel. Payload parsing
   (`ParsedValue`) is Dart-only so both platforms behave identically.
 - The analyzer / metadata-delegate callbacks are per-frame hot paths; avoid

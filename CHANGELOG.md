@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- Fixed `barcode.parsed` throwing a `FormatException` on `tel:` / `geo:` payloads with malformed percent-encoding; they now fall back to the raw value.
+- Removed `validateScanWindow` / `validateFocusPoint` from the public API (now internal guards). `QrScannerView`, `setScanWindow` and `setFocusPoint` still validate and throw for out-of-range input.
+- Documented that `scanOnce` stops the controller's shared camera session on completion; don't pair it with continuous `onDetect` / stream scanning on the same controller.
+
 ## 0.2.3
 
 - iOS now re-converts the scan window's `rectOfInterest` whenever the preview's bounds or orientation change, so a rotation or resize no longer filters detections against the stale layout.

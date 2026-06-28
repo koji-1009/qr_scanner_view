@@ -5,31 +5,57 @@ import 'package:flutter/services.dart';
 
 import 'models.dart';
 import 'options.dart';
+import 'validation.dart';
 import 'wire.dart';
 
 /// Lifecycle / permission state of a scanner.
 ///
-/// [permissionDenied] means the request was declined but may be re-prompted;
-/// [permissionPermanentlyDenied] means the OS will no longer prompt and the
-/// user must change the setting in system Settings. [paused] means the
+/// [permissionDenied] means the request was declined but may be re-prompted
+/// (Android only; iOS reports [permissionPermanentlyDenied] on the first
+/// denial). [permissionPermanentlyDenied] means the OS will no longer prompt
+/// and the user must change the setting in system Settings. [paused] means the
 /// preview is live but detection is suspended (see
 /// `QrScannerController.pause`).
 enum ScannerState {
+  /// Setting up the camera session; no preview yet.
   initializing,
+
+  /// Configured and not streaming — before the first start and after `stop`.
   ready,
+
+  /// Streaming and detecting.
   scanning,
+
+  /// Preview live, detection suspended (see `QrScannerController.pause`).
   paused,
+
+  /// Camera permission was declined but may be re-prompted (Android only).
   permissionDenied,
+
+  /// Camera permission was permanently declined; recover via
+  /// `QrScanner.openAppSettings`.
   permissionPermanentlyDenied,
+
+  /// A native error occurred; the matching [ScannerError] is delivered on
+  /// `QrScannerController.errors`.
   error,
 }
 
 /// Machine-readable reason accompanying [ScannerState.error].
 enum ScannerErrorCode {
+  /// The requested lens (or any lens, for `CameraLens.auto`) is unavailable.
   lensNotFound,
+
+  /// The camera could not be configured or started.
   configurationFailed,
+
+  /// None of the requested `BarcodeFormat`s is detectable on this device.
   unsupportedFormats,
+
+  /// Android only: no foreground Activity was available to start the camera.
   activityUnavailable,
+
+  /// An unclassified failure; see `ScannerError.message`.
   unknown,
 }
 
@@ -344,6 +370,12 @@ class QrScannerController {
   /// When several codes are visible in the first frame, settles on the one
   /// nearest the scan-window (or preview) center, like [DetectionMode.once].
   /// Returns null when [timeout] elapses or the controller is disposed first.
+  ///
+  /// Stops this controller's camera session on completion. A `QrScannerView`
+  /// shares its controller, so calling this while the same view scans
+  /// continuously (an `onDetect` callback or a [barcodes] / [frames] listener)
+  /// stops that live scanning after the first detection; call [start] to
+  /// resume. Use one consumption model per controller.
   Future<Barcode?> scanOnce({Duration? timeout}) async {
     // Subscribe before starting so a detection arriving while start() is in
     // flight is not lost; ignore() silences the abandoned future on timeout.

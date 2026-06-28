@@ -346,4 +346,62 @@ void main() {
       isNot(contains('secret')),
     );
   });
+
+  group('additional parsing coverage', () {
+    test('MMSTO and MMS map like their SMS counterparts', () {
+      expect(
+        parse('MMSTO:+81901:hey'),
+        const SmsValue(number: '+81901', message: 'hey'),
+      );
+      expect(
+        parse('MMS:+81901?body=hi'),
+        const SmsValue(number: '+81901', message: 'hi'),
+      );
+    });
+
+    test('an sms URI without a number falls back to text', () {
+      expect(parse('sms:?body=hi'), isA<TextValue>());
+    });
+
+    test('WPA3 and SAE map to wpa security', () {
+      expect(
+        parse('WIFI:S:a;T:WPA3;;'),
+        const WifiValue(ssid: 'a', security: .wpa),
+      );
+      expect(
+        parse('WIFI:S:a;T:SAE;;'),
+        const WifiValue(ssid: 'a', security: .wpa),
+      );
+    });
+
+    test('an empty vCard falls back to text', () {
+      expect(parse('BEGIN:VCARD\nEND:VCARD'), isA<TextValue>());
+    });
+
+    test('tel with malformed percent-encoding keeps the raw value', () {
+      expect(parse('tel:%E0%A4'), const PhoneValue('%E0%A4'));
+    });
+
+    test('geo drops an unparseable altitude and keeps coordinates', () {
+      expect(
+        parse('geo:35.0,139.0,abc'),
+        const GeoValue(latitude: 35.0, longitude: 139.0),
+      );
+    });
+
+    test('geo with malformed percent-encoded query keeps the raw query', () {
+      expect(
+        parse('geo:0,0?q=%E0%A4'),
+        const GeoValue(latitude: 0, longitude: 0, query: '%E0%A4'),
+      );
+    });
+
+    test('an empty retail payload is text', () {
+      expect(parse('', format: .ean13), const TextValue(''));
+    });
+
+    test('URLTO without a URL part falls back to text', () {
+      expect(parse('URLTO:title only'), isA<TextValue>());
+    });
+  });
 }

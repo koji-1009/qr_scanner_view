@@ -806,8 +806,9 @@ ParsedValue? _parseTel(String value) {
   if (cut >= 0) number = number.substring(0, cut);
   try {
     number = Uri.decodeComponent(number);
-  } on ArgumentError {
-    // Malformed percent-encoding; keep the raw digits.
+  } catch (_) {
+    // Malformed percent-encoding (ArgumentError or FormatException); keep the
+    // raw digits.
   }
   // Percent-encoded separators decode into new ones; cut those too.
   final decodedCut = number.indexOf(RegExp(r'[;?]'));
@@ -825,7 +826,8 @@ ParsedValue? _parseGeo(String value) {
       if (param.toLowerCase().startsWith('q=')) {
         try {
           query = Uri.decodeQueryComponent(param.substring(2));
-        } on ArgumentError {
+        } catch (_) {
+          // Malformed percent-encoding (ArgumentError or FormatException).
           query = param.substring(2);
         }
         break;

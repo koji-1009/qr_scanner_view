@@ -9,6 +9,7 @@ import 'package:flutter/widgets.dart';
 import 'models.dart';
 import 'options.dart';
 import 'qr_scanner_controller.dart';
+import 'validation.dart';
 import 'wire.dart';
 
 /// Live camera preview that scans QR codes and barcodes.

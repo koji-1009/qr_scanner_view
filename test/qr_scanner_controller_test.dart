@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:qr_scanner_view/qr_scanner_view.dart';
@@ -558,5 +560,270 @@ void main() {
       expect(calls.map((c) => c.method), contains('stop'));
       await controller.dispose();
     });
+
+    test(
+      'stops the shared session while a barcodes listener is live',
+      () async {
+        final controller = QrScannerController(viewId);
+        final seen = <String>[];
+        controller.barcodes.listen((b) => seen.add(b.value));
+
+        final future = controller.scanOnce();
+        await Future<void>.delayed(Duration.zero);
+        await pushBarcode('shared');
+
+        expect((await future)?.value, 'shared');
+        expect(seen, ['shared'], reason: 'the live listener sees it too');
+        expect(calls.map((c) => c.method), contains('stop'));
+
+        await controller.dispose();
+      },
+    );
+
+    test('returns null when disposed before a detection', () async {
+      final controller = QrScannerController(viewId);
+      final future = controller.scanOnce();
+      await Future<void>.delayed(Duration.zero);
+      await controller.dispose();
+      expect(await future, isNull);
+    });
+  });
+
+  group('robustness', () {
+    test('a channel error surfaces an unknown error and error state', () async {
+      final controller = QrScannerController(viewId);
+      final errors = <ScannerError>[];
+      controller.errors.listen(errors.add);
+
+      await messenger.handlePlatformMessage(
+        eventChannelName,
+        codec.encodeErrorEnvelope(code: 'boom', message: 'native blew up'),
+        (_) {},
+      );
+      await Future<void>.delayed(Duration.zero);
+
+      expect(errors.single.code, ScannerErrorCode.unknown);
+      expect(controller.currentState, ScannerState.error);
+      await controller.dispose();
+    });
+
+    test('getCapabilities returns empty capabilities after dispose', () async {
+      capabilitiesResponse = {
+        'hasTorch': true,
+        'lenses': ['back'],
+        'maxZoomRatio': 4.0,
+      };
+      final controller = QrScannerController(viewId);
+      await controller.dispose();
+
+      final caps = await controller.getCapabilities();
+      expect(caps.hasTorch, isFalse);
+      expect(caps.availableLenses, isEmpty);
+      expect(caps.maxZoomRatio, 1.0);
+      expect(calls.where((c) => c.method == 'getCapabilities'), isEmpty);
+    });
+
+    test('getCapabilities returns empty when disposed mid-call', () async {
+      final gate = Completer<dynamic>();
+      messenger.setMockMethodCallHandler(methodChannel, (call) async {
+        calls.add(call);
+        if (call.method == 'getCapabilities') return gate.future;
+        return null;
+      });
+      final controller = QrScannerController(viewId);
+      final capsFuture = controller.getCapabilities();
+      await controller.dispose();
+      gate.complete({
+        'hasTorch': true,
+        'lenses': ['back'],
+        'maxZoomRatio': 5.0,
+      });
+      expect((await capsFuture).hasTorch, isFalse);
+    });
+
+    test(
+      'getCapabilities defaults missing fields and tolerates null',
+      () async {
+        capabilitiesResponse = <dynamic, dynamic>{};
+        final c1 = QrScannerController(viewId);
+        final defaults = await c1.getCapabilities();
+        expect(defaults.hasTorch, isFalse);
+        expect(defaults.availableLenses, isEmpty);
+        expect(defaults.maxZoomRatio, 1.0);
+        await c1.dispose();
+
+        capabilitiesResponse = null;
+        final c2 = QrScannerController(viewId);
+        expect((await c2.getCapabilities()).hasTorch, isFalse);
+        await c2.dispose();
+      },
+    );
+
+    test('dispose completes even when native dispose throws', () async {
+      messenger.setMockMethodCallHandler(methodChannel, (call) async {
+        calls.add(call);
+        if (call.method == 'dispose') {
+          throw PlatformException(code: 'gone');
+        }
+        return null;
+      });
+      final controller = QrScannerController(viewId);
+      await expectLater(controller.dispose(), completes);
+      await controller.dispose();
+      expect(calls.where((c) => c.method == 'dispose'), hasLength(1));
+    });
+
+    test('constructor rejects an invalid initial scanWindow', () {
+      expect(
+        () => QrScannerController(
+          viewId,
+          detection: const DetectionOptions(
+            scanWindow: Rect.fromLTRB(0.7, 0, 0.3, 1),
+          ),
+        ),
+        throwsArgumentError,
+      );
+    });
+
+    test('setZoom clamps a negative value to zero', () async {
+      final controller = QrScannerController(viewId);
+      await controller.setZoom(-1.0);
+      expect(controller.zoom, 0.0);
+      expect(calls.last.arguments, {'zoom': 0.0});
+      await controller.dispose();
+    });
+
+    test(
+      'state is not replayed to late subscribers; currentState catches up',
+      () async {
+        final controller = QrScannerController(viewId);
+        await pushEvent({'type': 'state', 'state': 'scanning'});
+
+        final late = <ScannerState>[];
+        controller.state.listen(late.add);
+        await pushEvent({'type': 'state', 'state': 'paused'});
+
+        expect(controller.currentState, ScannerState.paused);
+        expect(late, [ScannerState.paused]);
+        await controller.dispose();
+      },
+    );
+  });
+
+  group('detection mode coverage', () {
+    test(
+      'scanWindow excludes a centroid on the exclusive right/bottom edge',
+      () async {
+        final controller = QrScannerController(
+          viewId,
+          detection: const DetectionOptions(
+            scanWindow: Rect.fromLTRB(0, 0, 0.5, 0.5),
+          ),
+        );
+        final seen = <String>[];
+        controller.barcodes.listen((b) => seen.add(b.value));
+
+        await pushFrame([
+          {
+            'value': 'edge',
+            'format': 'qr',
+            'corners': [
+              {'x': 0.5, 'y': 0.5},
+            ],
+          },
+          {
+            'value': 'inside',
+            'format': 'qr',
+            'corners': [
+              {'x': 0.0, 'y': 0.0},
+            ],
+          },
+        ]);
+
+        expect(seen, ['inside'], reason: 'Rect.contains is half-open');
+        await controller.dispose();
+      },
+    );
+
+    test('once falls back to the first code when none carry corners', () async {
+      final controller = QrScannerController(
+        viewId,
+        detection: const DetectionOptions(mode: .once),
+      );
+      final seen = <String>[];
+      controller.barcodes.listen((b) => seen.add(b.value));
+
+      await pushFrame([
+        {'value': 'first', 'format': 'qr'},
+        {'value': 'second', 'format': 'qr'},
+      ]);
+
+      expect(seen, ['first']);
+      await controller.dispose();
+    });
+
+    test('once ignores corner-less codes when another has corners', () async {
+      final controller = QrScannerController(
+        viewId,
+        detection: const DetectionOptions(mode: .once),
+      );
+      final seen = <String>[];
+      controller.barcodes.listen((b) => seen.add(b.value));
+
+      await pushFrame([
+        {'value': 'noCorners', 'format': 'qr'},
+        {
+          'value': 'cornered',
+          'format': 'qr',
+          'corners': [
+            {'x': 0.5, 'y': 0.5},
+          ],
+        },
+      ]);
+
+      expect(seen, ['cornered']);
+      await controller.dispose();
+    });
+
+    test('noDuplicates pruning keeps still-fresh entries suppressed', () async {
+      final controller = QrScannerController(
+        viewId,
+        detection: const DetectionOptions(mode: .noDuplicates),
+      );
+      final seen = <String>[];
+      controller.barcodes.listen((b) => seen.add(b.value));
+
+      final ab = [
+        {'value': 'a', 'format': 'qr'},
+        {'value': 'b', 'format': 'qr'},
+      ];
+      await pushFrame(ab);
+      await pushBarcode('a');
+      await pushFrame(ab);
+
+      expect(seen, ['a', 'b']);
+      await controller.dispose();
+    });
+
+    test(
+      'once keeps feeding frames after firing while barcodes goes silent',
+      () async {
+        final controller = QrScannerController(
+          viewId,
+          detection: const DetectionOptions(mode: .once),
+        );
+        final seen = <String>[];
+        final frames = <List<Barcode>>[];
+        controller.barcodes.listen((b) => seen.add(b.value));
+        controller.frames.listen(frames.add);
+
+        await pushBarcode('a');
+        await pushBarcode('b');
+
+        expect(seen, ['a']);
+        expect(frames.map((f) => f.single.value), ['a', 'b']);
+        await controller.dispose();
+      },
+    );
   });
 }
