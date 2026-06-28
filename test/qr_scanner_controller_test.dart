@@ -174,9 +174,21 @@ void main() {
       };
       final controller = QrScannerController(viewId);
       final capabilities = await controller.getCapabilities();
-      expect(capabilities.hasTorch, isTrue);
-      expect(capabilities.availableLenses, {CameraLens.back, CameraLens.front});
-      expect(capabilities.maxZoomRatio, 8.0);
+      // The decoded value is a distinct runtime instance, so comparing it to
+      // the expected const also exercises ScannerCapabilities == / hashCode.
+      const expected = ScannerCapabilities(
+        hasTorch: true,
+        availableLenses: {CameraLens.back, CameraLens.front},
+        maxZoomRatio: 8.0,
+      );
+      expect(capabilities, expected);
+      expect(capabilities.hashCode, expected.hashCode);
+      expect(capabilities, isNot(const ScannerCapabilities()));
+      expect(
+        () => capabilities.availableLenses.add(CameraLens.auto),
+        throwsUnsupportedError,
+        reason: 'the lens set is unmodifiable',
+      );
       await controller.dispose();
     });
 

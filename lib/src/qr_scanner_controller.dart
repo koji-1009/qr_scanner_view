@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart' show immutable;
+import 'package:flutter/foundation.dart' show immutable, setEquals;
 import 'package:flutter/services.dart';
 
 import 'models.dart';
@@ -81,6 +81,7 @@ class ScannerError {
 }
 
 /// What the current device's camera supports.
+@immutable
 class ScannerCapabilities {
   const ScannerCapabilities({
     this.hasTorch = false,
@@ -98,6 +99,21 @@ class ScannerCapabilities {
   /// [QrScannerController.setZoom] stays linear 0.0..1.0 across the supported
   /// range).
   final double maxZoomRatio;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ScannerCapabilities &&
+          other.hasTorch == hasTorch &&
+          setEquals(other.availableLenses, availableLenses) &&
+          other.maxZoomRatio == maxZoomRatio;
+
+  @override
+  int get hashCode => Object.hash(
+    hasTorch,
+    Object.hashAllUnordered(availableLenses),
+    maxZoomRatio,
+  );
 }
 
 final Map<String, ScannerState> _scannerStateByName = ScannerState.values
@@ -466,7 +482,7 @@ class QrScannerController {
         const <CameraLens>{};
     return ScannerCapabilities(
       hasTorch: map['hasTorch'] as bool? ?? false,
-      availableLenses: lenses,
+      availableLenses: Set.unmodifiable(lenses),
       maxZoomRatio: (map['maxZoomRatio'] as num?)?.toDouble() ?? 1.0,
     );
   }
