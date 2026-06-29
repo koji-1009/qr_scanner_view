@@ -1,5 +1,5 @@
 group = "com.koji_1009.app.qr_scanner_view"
-version = "0.2.3"
+version = "1.0-SNAPSHOT"
 
 buildscript {
     val kotlinVersion = "2.3.20"
