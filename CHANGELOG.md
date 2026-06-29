@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.0.0
 
 - Fixed `barcode.parsed` throwing a `FormatException` on `tel:` / `geo:` payloads with malformed percent-encoding; they now fall back to the raw value.
 - `mailto:` / `sms:` recipients are now percent-decoded, matching how subject/body are handled.
