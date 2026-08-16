@@ -25,7 +25,7 @@ Swift (`ios/`).
   `cd example/android && ./gradlew :qr_scanner_view:testDebugUnitTest`
 - iOS compile check:
   `cd example && flutter build ios --debug --simulator`
-- CI runs the same set: `.github/workflows/ci.yml`
+- CI runs the same set: `.github/workflows/analyze.yml` (Dart) and `.github/workflows/build.yml` (native)
 
 ## Formatting
 
