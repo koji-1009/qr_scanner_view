@@ -1,5 +1,10 @@
 # qr_scanner_view
 
+[![pub package](https://img.shields.io/pub/v/qr_scanner_view.svg)](https://pub.dev/packages/qr_scanner_view)
+[![GitHub license](https://img.shields.io/github/license/koji-1009/qr_scanner_view)](https://github.com/koji-1009/qr_scanner_view/blob/main/LICENSE)
+[![analyze](https://github.com/koji-1009/qr_scanner_view/actions/workflows/analyze.yml/badge.svg)](https://github.com/koji-1009/qr_scanner_view/actions/workflows/analyze.yml)
+[![build](https://github.com/koji-1009/qr_scanner_view/actions/workflows/build.yml/badge.svg)](https://github.com/koji-1009/qr_scanner_view/actions/workflows/build.yml)
+
 Live camera QR / barcode scanner for Flutter (iOS 13+ / Android 7.0+).
 
 The native side owns the camera, preview and detector (AVFoundation on iOS, CameraX + ML Kit on Android); only decoded values cross to Dart. The widget owns its controller, requests permission, starts the camera, pauses while the app is in the background and cleans everything up on removal.
