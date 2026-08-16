@@ -1,33 +1,25 @@
-name: CI
+name: Build
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
   pull_request:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  analyze:
+  build_android:
+    name: Android
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: koji-1009/setup-flutter@9a42a50501f6af795c1a42e2c3c371f40e8c54b2 # v1.4.0
-      - run: flutter analyze
-      - run: dart format --output=none --set-exit-if-changed .
-
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: koji-1009/setup-flutter@9a42a50501f6af795c1a42e2c3c371f40e8c54b2 # v1.4.0
-      - run: flutter test
-
-  build-android:
-    runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
         with:
-          distribution: temurin
+          distribution: "temurin"
           java-version: "17"
       - uses: koji-1009/setup-flutter@9a42a50501f6af795c1a42e2c3c371f40e8c54b2 # v1.4.0
       - run: flutter build apk --debug
@@ -36,8 +28,10 @@ jobs:
         run: ./gradlew :qr_scanner_view:testDebugUnitTest
         working-directory: example/android
 
-  build-ios:
+  build_ios:
+    name: iOS
     runs-on: macos-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: koji-1009/setup-flutter@9a42a50501f6af795c1a42e2c3c371f40e8c54b2 # v1.4.0
