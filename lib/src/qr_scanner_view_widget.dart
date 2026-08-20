@@ -24,10 +24,11 @@ import 'wire.dart';
 /// Initial behavior is configured declaratively with [camera] and
 /// [detection]; rebuilding with different [CameraOptions] or a different
 /// [DetectionOptions.scanWindow] applies the change to the running camera.
-/// [DetectionOptions.formats], [DetectionOptions.mode] and
-/// [DetectionOptions.timeout] are fixed at creation — change the widget [key]
-/// to apply new values (this recreates the camera session). Runtime control
-/// also goes through the controller received in [onCreated].
+/// [DetectionOptions.formats], [DetectionOptions.mode],
+/// [DetectionOptions.timeout] and [autoRequestPermission] are fixed at
+/// creation — change the widget [key] to apply new values (this recreates the
+/// camera session). Runtime control also goes through the controller received
+/// in [onCreated].
 class QrScannerView extends StatefulWidget {
   const QrScannerView({
     super.key,
@@ -37,6 +38,7 @@ class QrScannerView extends StatefulWidget {
     this.detection = const DetectionOptions(),
     this.fit = .cover,
     this.autoStart = true,
+    this.autoRequestPermission = true,
     this.tapToFocus = false,
     this.placeholderBuilder,
     this.errorBuilder,
@@ -63,6 +65,17 @@ class QrScannerView extends StatefulWidget {
   /// Whether to start scanning as soon as the view is ready.
   final bool autoStart;
 
+  /// Whether the view requests the camera permission itself when starting
+  /// without it.
+  ///
+  /// Set this to false to run the app's own permission flow instead: starting
+  /// without permission then shows no OS prompt and reports
+  /// [ScannerState.permissionUnhandled]. Call
+  /// [QrScannerController.start] again once permission is granted — the view
+  /// does not watch for the grant. Fixed at creation; change the widget [key]
+  /// to apply a new value.
+  final bool autoRequestPermission;
+
   /// Whether a tap on the preview focuses the camera at the tapped point
   /// (see [QrScannerController.setFocusPoint]).
   final bool tapToFocus;
@@ -72,9 +85,11 @@ class QrScannerView extends StatefulWidget {
   /// permission state is active.
   final Widget Function(BuildContext context)? placeholderBuilder;
 
-  /// Shown over the view in [ScannerState.error] and the permission-denied
-  /// states. `error` carries the [ScannerError] for [ScannerState.error] and
-  /// is null for the permission states.
+  /// Shown over the view in [ScannerState.error] and the permission states
+  /// ([ScannerState.permissionUnhandled], [ScannerState.permissionDenied],
+  /// [ScannerState.permissionPermanentlyDenied]). `error` carries the
+  /// [ScannerError] for [ScannerState.error] and is null for the permission
+  /// states.
   final Widget Function(
     BuildContext context,
     ScannerState state,
@@ -124,6 +139,7 @@ class _QrScannerViewState extends State<QrScannerView> {
     final scanWindow = _sentScanWindow;
     return <String, dynamic>{
       'formats': formatsToWire(widget.detection.formats),
+      'autoRequestPermission': widget.autoRequestPermission,
       'camera': camera.lens.name,
       'zoom': camera.zoom,
       'torch': camera.torch,
@@ -204,6 +220,11 @@ class _QrScannerViewState extends State<QrScannerView> {
       'DetectionOptions.formats/mode/timeout are fixed at creation; '
       'change the QrScannerView key to apply new values.',
     );
+    assert(
+      widget.autoRequestPermission == oldWidget.autoRequestPermission,
+      'autoRequestPermission is fixed at creation; change the QrScannerView '
+      'key to apply a new value.',
+    );
     final controller = _controller;
     if (controller == null) {
       // The platform view is not up yet; _onPlatformViewCreated catches up
@@ -246,7 +267,10 @@ class _QrScannerViewState extends State<QrScannerView> {
   };
 
   bool get _showsError => switch (_viewState) {
-    .error || .permissionDenied || .permissionPermanentlyDenied => true,
+    .error ||
+    .permissionUnhandled ||
+    .permissionDenied ||
+    .permissionPermanentlyDenied => true,
     _ => false,
   };
 

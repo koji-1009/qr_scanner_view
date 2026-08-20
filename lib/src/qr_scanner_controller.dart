@@ -10,11 +10,13 @@ import 'wire.dart';
 
 /// Lifecycle / permission state of a scanner.
 ///
-/// [permissionDenied] means the request was declined but may be re-prompted
-/// (Android only; iOS reports [permissionPermanentlyDenied] on the first
-/// denial). [permissionPermanentlyDenied] means the OS will no longer prompt
-/// and the user must change the setting in system Settings. [paused] means the
-/// preview is live but detection is suspended (see
+/// [permissionUnhandled] means the view was asked to start without camera
+/// permission while `QrScannerView.autoRequestPermission` is false, so it did
+/// not prompt. [permissionDenied] means the request was declined but may be
+/// re-prompted (Android only; iOS reports [permissionPermanentlyDenied] on the
+/// first denial). [permissionPermanentlyDenied] means the OS will no longer
+/// prompt and the user must change the setting in system Settings. [paused]
+/// means the preview is live but detection is suspended (see
 /// `QrScannerController.pause`).
 enum ScannerState {
   /// Setting up the camera session; no preview yet.
@@ -28,6 +30,13 @@ enum ScannerState {
 
   /// Preview live, detection suspended (see `QrScannerController.pause`).
   paused,
+
+  /// This view does not handle camera permission
+  /// (`QrScannerView.autoRequestPermission` is false) and permission was not
+  /// granted when `start` ran, so no prompt was shown. Obtain permission with
+  /// the app's own flow, then call `QrScannerController.start` again; query
+  /// `QrScanner.checkPermission` for the OS-level status.
+  permissionUnhandled,
 
   /// Camera permission was declined but may be re-prompted (Android only).
   permissionDenied,
@@ -361,6 +370,10 @@ class QrScannerController {
   }
 
   /// Starts detection, triggering the runtime permission request when needed.
+  ///
+  /// When the view was created with `QrScannerView.autoRequestPermission` set
+  /// to false, no request is triggered: without permission the view reports
+  /// [ScannerState.permissionUnhandled] instead.
   ///
   /// The returned future completes when the request is acknowledged, not when
   /// the camera runs; observe [state]/[errors] for the outcome. Re-arms

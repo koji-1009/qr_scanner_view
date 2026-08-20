@@ -7,7 +7,7 @@
 
 Live camera QR / barcode scanner for Flutter (iOS 13+ / Android 7.0+).
 
-The native side owns the camera, preview and detector (AVFoundation on iOS, CameraX + ML Kit on Android); only decoded values cross to Dart. The widget owns its controller, requests permission, starts the camera, pauses while the app is in the background and cleans everything up on removal.
+The native side owns the camera, preview and detector (AVFoundation on iOS, CameraX + ML Kit on Android); only decoded values cross to Dart. The widget owns its controller, requests permission (opt-out with `autoRequestPermission: false`), starts the camera, pauses while the app is in the background and cleans everything up on removal.
 
 ## Quick start
 
@@ -20,7 +20,9 @@ QrScannerView(onDetect: (barcode) => print(barcode.value))
 ### Setup
 
 - **iOS**: add `NSCameraUsageDescription` to your app's `Info.plist` (the app crashes without it). Minimum iOS 13.0.
-- **Android**: nothing — the camera permission is declared and requested by the plugin. Minimum SDK 24.
+- **Android**: nothing — `<uses-permission android:name="android.permission.CAMERA" />` is merged in from the plugin manifest, and the plugin requests the permission at runtime. Minimum SDK 24.
+
+With `autoRequestPermission: false` the manifest declaration is still merged in, but the runtime request becomes the app's job on both platforms — see [Owning the permission flow](#owning-the-permission-flow).
 
 ## Configuration
 
@@ -44,7 +46,7 @@ QrScannerView(
 )
 ```
 
-`placeholderBuilder` covers the view while the camera is not streaming, `errorBuilder` covers it in the error and permission-denied states, and `overlayBuilder` is built on top of everything.
+`placeholderBuilder` covers the view while the camera is not streaming, `errorBuilder` covers it in the error and permission states, and `overlayBuilder` is built on top of everything.
 
 ```dart
 // Runtime control:
@@ -78,6 +80,26 @@ switch (await QrScanner.checkPermission()) {
     await QrScanner.requestPermission();
 }
 ```
+
+### Owning the permission flow
+
+By default the view prompts for the camera permission itself when it starts without one. Pass `autoRequestPermission: false` to keep that entirely in the app — for a rationale screen, a `permission_handler` flow, or a permission request that happens before the scanner is shown.
+
+```dart
+QrScannerView(
+  autoRequestPermission: false,
+  errorBuilder: (context, state, error) => switch (state) {
+    ScannerState.permissionUnhandled => MyPermissionPrompt(
+      onGranted: () => _controller?.start(), // the view does not retry by itself
+    ),
+    _ => MyErrorPanel(state, error),
+  },
+  onCreated: (controller) => _controller = controller,
+  onDetect: (barcode) => ...,
+)
+```
+
+Starting without the permission then shows no OS prompt and reports `ScannerState.permissionUnhandled`. The view does not watch for the grant, so call `controller.start()` again once the app has obtained it. `autoRequestPermission` is fixed at creation — change the widget `key` to apply a new value.
 
 ## Typed values
 

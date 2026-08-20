@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.1.0
+
+- Added `QrScannerView.autoRequestPermission` (default `true`, unchanged behavior). Setting it to `false` keeps the camera-permission request entirely in the app: the view never prompts, and starting without the permission reports the new `ScannerState.permissionUnhandled` instead. Call `start()` again once the app has obtained the permission — the view does not watch for the grant.
+- Added `ScannerState.permissionUnhandled`. Exhaustive `switch` statements over `ScannerState` need a branch for it.
+
 ## 1.0.0
 
 - Fixed `barcode.parsed` throwing a `FormatException` on `tel:` / `geo:` payloads with malformed percent-encoding; they now fall back to the raw value.
