@@ -223,6 +223,21 @@ void main() {
       await controller.dispose();
     });
 
+    test('every ScannerState name round-trips from a native event', () async {
+      final controller = QrScannerController(viewId);
+      final states = <ScannerState>[];
+      controller.state.listen(states.add);
+
+      for (final state in ScannerState.values) {
+        await pushEvent({'type': 'state', 'state': state.name});
+      }
+
+      expect(states, ScannerState.values);
+      expect(states, contains(ScannerState.permissionUnhandled));
+
+      await controller.dispose();
+    });
+
     test('error events surface a coded error and an error state', () async {
       final controller = QrScannerController(viewId);
       final errors = <ScannerError>[];

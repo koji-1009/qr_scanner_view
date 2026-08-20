@@ -135,6 +135,9 @@ final class QrScannerPlatformView: NSObject,
   private var lastErrorEvent: [String: Any]?
 
   private let requestedFormats: [String]
+  /// When false the view never prompts: starting without the permission
+  /// reports `permissionUnhandled` and leaves the request to the app.
+  private let autoRequestPermission: Bool
   /// Mutated only on the session queue after init.
   private var requestedLens: String
   private var requestedZoom: Double
@@ -193,6 +196,7 @@ final class QrScannerPlatformView: NSObject,
     )
     let params = args as? [String: Any] ?? [:]
     requestedFormats = (params["formats"] as? [String]) ?? []
+    autoRequestPermission = (params["autoRequestPermission"] as? Bool) ?? true
     requestedLens = (params["camera"] as? String) ?? "auto"
     requestedZoom = (params["zoom"] as? Double) ?? 0.0
     torchEnabled = (params["torch"] as? Bool) ?? false
@@ -421,7 +425,17 @@ final class QrScannerPlatformView: NSObject,
   private func start() {
     wantsRunning = true
     isPaused = false
-    switch AVCaptureDevice.authorizationStatus(for: .video) {
+    let status = AVCaptureDevice.authorizationStatus(for: .video)
+    // The app owns the permission flow: report without prompting so it can run
+    // its own request and call start() again. The OS-level status is
+    // deliberately not classified here — the plugin-level checkPermission is
+    // the single place that reports it.
+    if status != .authorized && !autoRequestPermission {
+      wantsRunning = false
+      emitState("permissionUnhandled")
+      return
+    }
+    switch status {
     case .authorized:
       configureAndStart()
     case .notDetermined:

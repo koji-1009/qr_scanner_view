@@ -108,6 +108,11 @@ class QrScannerView(
     private var torchEnabled: Boolean =
         (creationParams["torch"] as? Boolean) ?: false
 
+    /** When false the view never prompts: starting without the permission
+     * reports `permissionUnhandled` and leaves the request to the app. */
+    private val autoRequestPermission: Boolean =
+        (creationParams["autoRequestPermission"] as? Boolean) ?: true
+
     // Written on the main thread, read by onAnalysisResult on the analysis
     // thread.
     @Volatile private var scanWindow: RectF? = null
@@ -352,6 +357,14 @@ class QrScannerView(
         ) == PackageManager.PERMISSION_GRANTED
         if (granted) {
             startCamera()
+            return
+        }
+        // The app owns the permission flow: report without prompting so it can
+        // run its own request and call start() again. The OS-level status is
+        // deliberately not classified here — the plugin-level checkPermission
+        // is the single place that reports it.
+        if (!autoRequestPermission) {
+            emitState("permissionUnhandled")
             return
         }
         // A request is already on screen; its result drives this start() too.
