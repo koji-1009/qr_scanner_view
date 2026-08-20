@@ -39,7 +39,7 @@ jobs:
         working-directory: example
       - run: flutter build ios --debug --simulator
         working-directory: example
-      - uses: koji-1009/boot-simctl@ecc5161dd40a0854fde7591b5a11c9584fb684bf # v1.2.0
+      - uses: koji-1009/boot-simctl@59420d2a1284d7c4227e19e9bab3e11172c883a4 # v1.2.1
         with:
           device: iPhone
       - name: Native unit tests
