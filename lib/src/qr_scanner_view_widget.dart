@@ -24,10 +24,11 @@ import 'wire.dart';
 /// Initial behavior is configured declaratively with [camera] and
 /// [detection]; rebuilding with different [CameraOptions] or a different
 /// [DetectionOptions.scanWindow] applies the change to the running camera.
-/// [DetectionOptions.formats], [DetectionOptions.mode] and
-/// [DetectionOptions.timeout] are fixed at creation — change the widget [key]
-/// to apply new values (this recreates the camera session). Runtime control
-/// also goes through the controller received in [onCreated].
+/// [DetectionOptions.formats], [DetectionOptions.mode],
+/// [DetectionOptions.timeout] and [autoRequestPermission] are fixed at
+/// creation — change the widget [key] to apply new values (this recreates the
+/// camera session). Runtime control also goes through the controller received
+/// in [onCreated].
 class QrScannerView extends StatefulWidget {
   const QrScannerView({
     super.key,

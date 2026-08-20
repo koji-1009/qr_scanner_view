@@ -20,7 +20,9 @@ QrScannerView(onDetect: (barcode) => print(barcode.value))
 ### Setup
 
 - **iOS**: add `NSCameraUsageDescription` to your app's `Info.plist` (the app crashes without it). Minimum iOS 13.0.
-- **Android**: nothing — the camera permission is declared and requested by the plugin. Minimum SDK 24. The `<uses-permission android:name="android.permission.CAMERA" />` declaration is merged in from the plugin manifest regardless of `autoRequestPermission`.
+- **Android**: nothing — `<uses-permission android:name="android.permission.CAMERA" />` is merged in from the plugin manifest, and the plugin requests the permission at runtime. Minimum SDK 24.
+
+With `autoRequestPermission: false` the manifest declaration is still merged in, but the runtime request becomes the app's job on both platforms — see [Owning the permission flow](#owning-the-permission-flow).
 
 ## Configuration
 
