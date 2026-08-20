@@ -39,10 +39,11 @@ jobs:
         working-directory: example
       - run: flutter build ios --debug --simulator
         working-directory: example
+      - uses: koji-1009/boot-simctl@ecc5161dd40a0854fde7591b5a11c9584fb684bf # v1.2.0
+        with:
+          device: iPhone
       - name: Native unit tests
         run: |
-          UDID=$(xcrun simctl list devices available --json |
-            jq -r '[.devices[][] | select(.isAvailable)][0].udid')
           xcodebuild test -workspace Runner.xcworkspace -scheme Runner \
-            -destination "id=$UDID" -quiet
+            -destination "id=$SIMULATOR_UDID" -quiet
         working-directory: example/ios
