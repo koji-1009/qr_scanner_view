@@ -23,8 +23,9 @@ Swift (`ios/`).
 - Dart: `flutter analyze` / `flutter test`
 - Android native tests (also compiles the plugin Kotlin):
   `cd example/android && ./gradlew :qr_scanner_view:testDebugUnitTest`
-- iOS compile check:
-  `cd example && flutter build ios --debug --simulator`
+- iOS native tests (also compiles the plugin Swift):
+  - in `example`: `flutter build ios --config-only --simulator`
+  - then in `example/ios`: `xcodebuild test -workspace Runner.xcworkspace -scheme Runner -destination 'platform=iOS Simulator,name=<iPhone>'`
 - CI runs the same set: `.github/workflows/analyze.yml` (Dart) and `.github/workflows/build.yml` (native)
 
 ## Formatting
